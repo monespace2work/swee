@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "975146007258",
+    "project_id": "swee-8966a",
+    "storage_bucket": "swee-8966a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:975146007258:android:6c3cef41bc520e9d9ec3e3",
+        "android_client_info": {
+          "package_name": "com.jpb.swee.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCtQS2pvV6j6tmeaL1qN7YJVMhB3FppvA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

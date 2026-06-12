@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Version plus robuste qui ne plante pas si le document n'existe pas
+    function hasRole(role) {
+      return isSignedIn() &&
+             get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('president') || hasRole('tresorier') || hasRole('secretaire');
+    }
+
+    // SETTINGS collection
+    match /settings/{settingId} {
+      allow read: if isSignedIn();
+      // On exige une ré-authentification récente (moins de 5 minutes) pour modifier les paramètres sensibles
+      allow write: if isAdmin() &&
+                   request.auth.token.auth_time > (request.time.toMillis() - (5 * 60 * 1000)) / 1000;
+    }
+
+    // MEMBERS collection
+    match /members/{memberId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == memberId;
+      allow update: if isSignedIn() && (
+        request.auth.uid == memberId ||
+        isAdmin()
+      );
+      allow delete: if hasRole('president');
+    }
+
+    // PAYMENTS collection
+    match /payments/{id} {
+      // Un membre peut voir ses propres paiements, les admins peuvent tout voir
+      allow read: if isSignedIn() && (
+        resource.data.memberId == request.auth.uid ||
+        isAdmin()
+      );
+      // Seuls les admins (Trésorier/Président) peuvent enregistrer/modifier des paiements
+      allow write: if isAdmin();
+    }
+
+    // POSTS collection
+    match /posts/{id} {
+      allow read: if true;
+      // Seuls les admins créent/suppriment des posts
+      allow create, delete: if isAdmin();
+      // Les membres peuvent voter (update le champ votes)
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes'])
+      );
+    }
+
+    // COMMENTS collection
+    match /comments/{id} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.memberId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.memberId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (resource.data.memberId == request.auth.uid || isAdmin());
+    }
+
+    // IDEAS collection
+    match /ideas/{id} {
+      // Un membre voit ses idées, les admins voient tout
+      allow read: if isSignedIn() && (
+        resource.data.memberId == request.auth.uid ||
+        isAdmin()
+      );
+      // Création réservée au membre lui-même
+      allow create: if isSignedIn() && request.resource.data.memberId == request.auth.uid;
+      // Modification par le membre (si c'est son idée) ou par l'admin (pour réponse/status)
+      allow update: if isSignedIn() && (
+        resource.data.memberId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ALERTS collection
+    match /alerts/{id} {
+      allow read: if isSignedIn();
+      // Création réservée aux admins
+      allow create: if isAdmin();
+      // Modification par l'initiateur (ou président) OU par tout membre pour marquer comme lu, demander un rappel ou masquer
+      allow update: if (isAdmin() && (resource.data.initiatorId == request.auth.uid || hasRole('president'))) ||
+                   (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewedBy', 'remindMeLater', 'dismissedBy']));
+      allow delete: if isAdmin() && (resource.data.initiatorId == request.auth.uid || hasRole('president'));
+    }
+  }
+}

@@ -1,0 +1,297 @@
+import 'package:flutter/material.dart';
+import '../../home/navigation_wrapper.dart';
+import '../../../services/database_service.dart';
+import '../../../models/member_model.dart';
+import 'record_payment_screen.dart';
+import 'payment_management_screen.dart';
+import '../alerts/manage_alerts_screen.dart';
+import '../../../services/auth_service.dart';
+import '../../auth/auth_wrapper.dart';
+import '../../../widgets/app_header_title.dart';
+import '../../../theme/app_theme.dart';
+
+class TreasurerDashboard extends StatelessWidget {
+  const TreasurerDashboard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final dbService = DatabaseService();
+    final isWeb = MediaQuery.of(context).size.width > 900;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const AppHeaderTitle(showRole: true),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.swap_horiz),
+            tooltip: 'Mode Membre',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NavigationWrapper()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Déconnexion',
+            onPressed: () => _showLogoutDialog(context),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          children: [
+            // Menu Principal en 3D
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: isWeb ? 3 : 1,
+                mainAxisSpacing: 20,
+                crossAxisSpacing: 20,
+                childAspectRatio: isWeb ? 3.5 : 4.5,
+                children: [
+                  _build3DButton(
+                    context,
+                    title: 'Enregistrer un paiement',
+                    subtitle: 'Cotisations et dons',
+                    icon: Icons.add_card,
+                    color: AppTheme.darkBlue,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RecordPaymentScreen())),
+                  ),
+                  _build3DButton(
+                    context,
+                    title: 'Situation des paiements',
+                    subtitle: 'Historique et rapports',
+                    icon: Icons.history,
+                    color: AppTheme.darkBlue,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentManagementScreen())),
+                  ),
+                  _build3DButton(
+                    context,
+                    title: 'Gérer les Alertes',
+                    subtitle: 'Rappels de paiement',
+                    icon: Icons.notification_important,
+                    color: AppTheme.darkBlue,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageAlertsScreen())),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 40),
+            const Divider(),
+            
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Icon(Icons.pending_actions, color: AppTheme.gold),
+                  SizedBox(width: 8),
+                  Text('Validations en attente (Niveau 2)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+            
+            StreamBuilder<List<MemberModel>>(
+              stream: dbService.getMembers(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                final pending = snapshot.data!.where((m) => m.status == UserStatus.enAttenteTresorier).toList();
+                
+                if (pending.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 48, color: Colors.green.withOpacity(0.5)),
+                        const SizedBox(height: 16),
+                        const Text('Tout est à jour ! Aucune validation requise.', style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: pending.length,
+                  itemBuilder: (context, index) {
+                    final member = pending[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.gold.withOpacity(0.1),
+                          child: Text(member.nom[0], style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
+                        ),
+                        title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(member.email, style: const TextStyle(fontSize: 12)),
+                        trailing: _build3DValidationButton(
+                          onPressed: () => _validateMember(member.id),
+                          label: 'Valider',
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _build3DButton(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: isDark ? AppTheme.deepNavy : Colors.white,
+          boxShadow: [
+            // Ombre portée pour l'effet 3D
+            BoxShadow(
+              color: isDark ? Colors.black.withOpacity(0.5) : Colors.grey.withOpacity(0.3),
+              offset: const Offset(0, 4),
+              blurRadius: 0,
+            ),
+            // Ombre douce
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              offset: const Offset(0, 10),
+              blurRadius: 10,
+            ),
+          ],
+          border: Border.all(
+            color: isDark ? AppTheme.gold.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            children: [
+              // Petit accent de couleur sur le côté
+              Positioned(
+                left: 0, top: 0, bottom: 0,
+                width: 6,
+                child: Container(color: AppTheme.gold),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gold.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: AppTheme.gold, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            subtitle,
+                            style: TextStyle(fontSize: 11, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: AppTheme.gold, size: 20),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _build3DValidationButton({required VoidCallback onPressed, required String label}) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppTheme.gold,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0xFFA68928), // Version plus sombre du gold
+              offset: Offset(0, 3),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: AppTheme.darkBlue,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await AuthService().signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const AuthWrapper()),
+                  (route) => false,
+                );
+              }
+            },
+            child: const Text('Se déconnecter', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _validateMember(String id) {
+    DatabaseService().updateMember(id, {'status': 'enAttentePresident'});
+  }
+}
