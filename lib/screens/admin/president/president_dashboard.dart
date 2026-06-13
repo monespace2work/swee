@@ -5,11 +5,13 @@ import '../../../models/member_model.dart';
 import '../../../services/auth_service.dart';
 import '../../auth/auth_wrapper.dart';
 import '../../../widgets/app_header_title.dart';
+import '../../../widgets/user_menu_button.dart';
 import '../secretary/association_settings_screen.dart';
 import '../secretary/member_management_screen.dart';
 import '../secretary/idea_moderation_screen.dart';
 import '../secretary/post_management_screen.dart';
 import '../alerts/manage_alerts_screen.dart';
+import 'role_management_screen.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/post_model.dart';
 import '../../../models/idea_model.dart';
@@ -33,11 +35,7 @@ class PresidentDashboard extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const NavigationWrapper()),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Déconnexion',
-            onPressed: () => _showLogoutDialog(context),
-          ),
+          const UserMenuButton(),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -118,6 +116,13 @@ class PresidentDashboard extends StatelessWidget {
                   Icons.notification_important, 
                   const ManageAlertsScreen()
                 ),
+                _buildMenuCard(
+                  context, 
+                  'Rôles & Accès', 
+                  Icons.admin_panel_settings, 
+                  null, // Custom onTap handle
+                  onTap: () => _verifyPresidentPassword(context, const RoleManagementScreen()),
+                ),
               ],
             ),
             const Padding(
@@ -170,7 +175,7 @@ class PresidentDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, String title, IconData icon, Widget screen, {String? stats}) {
+  Widget _buildMenuCard(BuildContext context, String title, IconData icon, Widget? screen, {String? stats, VoidCallback? onTap}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
@@ -180,7 +185,11 @@ class PresidentDashboard extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 80),
         child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => screen)),
+          onTap: onTap ?? () {
+            if (screen != null) {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+            }
+          },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
@@ -222,37 +231,59 @@ class PresidentDashboard extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  void _validateMember(String id) {
+    DatabaseService().updateMember(id, {'status': 'actif'});
+  }
+
+  void _verifyPresidentPassword(BuildContext context, Widget screen) {
+    final passwordController = TextEditingController();
+    final authService = AuthService();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
+        title: const Text('Zone Sécurisée'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Veuillez confirmer votre mot de passe pour accéder à la gestion des rôles.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Mot de passe',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Annuler'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await AuthService().signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const AuthWrapper()),
-                  (route) => false,
-                );
+              final success = await authService.reauthenticate(passwordController.text);
+              if (success) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Mot de passe incorrect'), backgroundColor: Colors.red),
+                  );
+                }
               }
             },
-            child: const Text('Se déconnecter', style: TextStyle(color: Colors.red)),
+            child: const Text('Confirmer'),
           ),
         ],
       ),
     );
-  }
-
-  void _validateMember(String id) {
-    DatabaseService().updateMember(id, {'status': 'actif'});
   }
 
   void _showQuickActions(BuildContext context) {
@@ -300,6 +331,16 @@ class PresidentDashboard extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const PostManagementScreen()));
+              },
+            ),
+            _buildActionTile(
+              context,
+              icon: Icons.security,
+              title: 'Gérer les Rôles',
+              subtitle: 'Modifier les droits et accès des membres',
+              onTap: () {
+                Navigator.pop(context);
+                _verifyPresidentPassword(context, const RoleManagementScreen());
               },
             ),
             const SizedBox(height: 16),

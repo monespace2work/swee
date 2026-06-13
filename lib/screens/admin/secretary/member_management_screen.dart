@@ -5,6 +5,7 @@ import '../../../models/member_model.dart';
 import '../../../services/database_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/user_provider.dart';
+import '../../../widgets/user_menu_button.dart';
 
 enum MemberSortOption { alphabetical, chronological, status, gender }
 
@@ -59,6 +60,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
               const PopupMenuItem(value: MemberSortOption.gender, child: Text('Sexe')),
             ],
           ),
+          const UserMenuButton(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -471,6 +473,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
   late TextEditingController _phoneController;
   late TextEditingController _adresseController;
   late UserStatus _selectedStatus;
+  late UserRole _selectedRole;
 
   @override
   void initState() {
@@ -480,6 +483,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
     _phoneController = TextEditingController(text: widget.member.telephone);
     _adresseController = TextEditingController(text: widget.member.adresse);
     _selectedStatus = widget.member.status;
+    _selectedRole = widget.member.role;
   }
 
   @override
@@ -689,6 +693,22 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
             child: Text(status.name),
           )).toList(),
         ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<UserRole>(
+          value: _selectedRole,
+          dropdownColor: isDark ? AppTheme.deepNavy : Colors.white,
+          style: TextStyle(color: isDark ? Colors.white : AppTheme.darkBlue),
+          decoration: InputDecoration(
+            labelText: 'Rôle',
+            labelStyle: TextStyle(color: isDark ? Colors.white70 : AppTheme.darkBlue),
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: !isPresident ? null : (val) => setState(() => _selectedRole = val!),
+          items: UserRole.values.map((role) => DropdownMenuItem(
+            value: role,
+            child: Text(role.name),
+          )).toList(),
+        ),
         const SizedBox(height: 40),
         SizedBox(
           width: double.infinity,
@@ -701,6 +721,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
                 'telephone': _phoneController.text,
                 'adresse': _adresseController.text,
                 'status': _selectedStatus.name,
+                'role': _selectedRole.name,
               });
               if (mounted) Navigator.pop(context);
             },

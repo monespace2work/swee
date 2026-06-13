@@ -93,6 +93,9 @@ class AppHeaderTitle extends StatelessWidget {
       case UserRole.president:
         roleTitle = 'Président';
         break;
+      case UserRole.conseiller:
+        roleTitle = 'Conseiller';
+        break;
       default:
         return '@${user.username}';
     }

@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:swee/screens/home/navigation_wrapper.dart';
-import 'package:swee/screens/admin/secretary/member_management_screen.dart';
 import 'package:swee/screens/admin/secretary/idea_moderation_screen.dart';
 import 'package:swee/screens/admin/secretary/post_management_screen.dart';
-import 'package:swee/screens/admin/secretary/association_settings_screen.dart';
 import 'package:swee/screens/admin/alerts/manage_alerts_screen.dart';
 import 'package:swee/services/database_service.dart';
-import 'package:swee/models/member_model.dart';
 import 'package:swee/models/post_model.dart';
 import 'package:swee/models/idea_model.dart';
-import 'package:swee/services/auth_service.dart';
-import 'package:swee/screens/auth/auth_wrapper.dart';
 import 'package:swee/widgets/app_header_title.dart';
 import 'package:swee/widgets/user_menu_button.dart';
 
-class SecretaryDashboard extends StatelessWidget {
-  const SecretaryDashboard({super.key});
+class AdvisorDashboard extends StatelessWidget {
+  const AdvisorDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -43,21 +38,6 @@ class SecretaryDashboard extends StatelessWidget {
         crossAxisSpacing: 12,
         childAspectRatio: MediaQuery.of(context).size.width > 900 ? 4 : 2.5,
         children: [
-          StreamBuilder<List<MemberModel>>(
-            stream: dbService.getMembers(),
-            builder: (context, snapshot) {
-              final members = snapshot.data ?? [];
-              final active = members.where((m) => m.status == UserStatus.actif).length;
-              final pending = members.where((m) => m.status == UserStatus.enAttenteTresorier || m.status == UserStatus.enAttentePresident).length;
-              return _buildMenuCard(
-                context, 
-                'Membres', 
-                Icons.people, 
-                const MemberManagementScreen(),
-                stats: snapshot.hasData ? '$active Actifs • $pending Attente' : '...',
-              );
-            }
-          ),
           StreamBuilder<List<IdeaModel>>(
             stream: dbService.getAllIdeas(),
             builder: (context, snapshot) {
@@ -88,7 +68,6 @@ class SecretaryDashboard extends StatelessWidget {
               );
             }
           ),
-          _buildMenuCard(context, 'Identité Club', Icons.settings_suggest, const AssociationSettingsScreen()),
           _buildMenuCard(context, 'Alertes', Icons.notification_important, const ManageAlertsScreen()),
         ],
       ),
@@ -145,14 +124,5 @@ class SecretaryDashboard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const PlaceholderScreen({super.key, required this.title});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text(title)), body: const Center(child: Text('En cours de développement')));
   }
 }

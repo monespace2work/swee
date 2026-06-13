@@ -7,6 +7,7 @@ import 'package:swee/services/auth_service.dart';
 import 'package:swee/screens/admin/secretary/secretary_dashboard.dart';
 import 'package:swee/screens/admin/treasurer/treasurer_dashboard.dart';
 import 'package:swee/screens/admin/president/president_dashboard.dart';
+import 'package:swee/screens/admin/advisor/advisor_dashboard.dart';
 import 'package:swee/widgets/alert_listener_wrapper.dart';
 import 'package:swee/screens/auth/auth_wrapper.dart';
 
@@ -55,6 +56,9 @@ class AdminDashboardScreen extends StatelessWidget {
         break;
       case UserRole.president:
         dashboard = const PresidentDashboard();
+        break;
+      case UserRole.conseiller:
+        dashboard = const AdvisorDashboard();
         break;
       default:
         return _buildStatusScreen(

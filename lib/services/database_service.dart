@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/member_model.dart';
 import '../models/payment_model.dart';
 import '../models/post_model.dart';
@@ -14,11 +15,45 @@ class DatabaseService {
 
   // MEMBERS
   Future<void> createMember(MemberModel member) async {
-    await _db.collection('members').doc(member.id).set(member.toMap());
+    final data = member.toMap();
+    data['email'] = (data['email'] as String).toLowerCase();
+    await _db.collection('members').doc(member.id).set(data);
   }
 
   Future<void> updateMember(String id, Map<String, dynamic> data) async {
     await _db.collection('members').doc(id).update(data);
+  }
+
+  Future<MemberModel?> getMemberByEmail(String email) async {
+    final searchEmail = email.trim().toLowerCase();
+    try {
+      final query = await _db
+          .collection('members')
+          .where('email', isEqualTo: searchEmail)
+          .limit(1)
+          .get();
+      
+      if (query.docs.isNotEmpty) {
+        return MemberModel.fromMap(query.docs.first.data(), query.docs.first.id);
+      }
+    } catch (e) {
+      debugPrint("Erreur getMemberByEmail: $e");
+      rethrow;
+    }
+    return null;
+  }
+
+  Future<void> migrateMemberToUid(String oldId, String newUid) async {
+    final docRef = _db.collection('members').doc(oldId);
+    final newDocRef = _db.collection('members').doc(newUid);
+
+    final doc = await docRef.get();
+    if (doc.exists) {
+      final data = doc.data()!;
+      // Mettre à jour l'ID interne au modèle si nécessaire
+      await newDocRef.set(data);
+      await docRef.delete();
+    }
   }
 
   Stream<List<MemberModel>> getMembers() {
@@ -151,6 +186,17 @@ class DatabaseService {
     return _db.collection('settings').doc('association').snapshots().map((doc) => doc.data() ?? {});
   }
 
+  // ROLE PERMISSIONS
+  Future<void> updateRolePermissions(String role, Map<String, bool> permissions) async {
+    await _db.collection('settings').doc('permissions').set({
+      role: permissions,
+    }, SetOptions(merge: true));
+  }
+
+  Stream<Map<String, dynamic>> getAllRolePermissions() {
+    return _db.collection('settings').doc('permissions').snapshots().map((doc) => doc.data() ?? {});
+  }
+
   // ALERTS
   Future<void> addAlert(AlertModel alert) async {
     await _db.collection('alerts').add(alert.toMap());
@@ -168,6 +214,15 @@ class DatabaseService {
     return _db
         .collection('alerts')
         .where('initiatorId', isEqualTo: adminId)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => AlertModel.fromMap(doc.data(), doc.id)).toList());
+  }
+
+  Stream<List<AlertModel>> getAllAlerts() {
+    return _db
+        .collection('alerts')
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) =>
             snapshot.docs.map((doc) => AlertModel.fromMap(doc.data(), doc.id)).toList());
@@ -200,7 +255,7 @@ class DatabaseService {
           case AlertTarget.all:
             return true;
           case AlertTarget.bureau:
-            return role == UserRole.president || role == UserRole.secretaire || role == UserRole.tresorier;
+            return role == UserRole.president || role == UserRole.secretaire || role == UserRole.tresorier || role == UserRole.conseiller;
           case AlertTarget.ordinary:
             return role == UserRole.membre;
           case AlertTarget.manual:
@@ -231,7 +286,7 @@ class DatabaseService {
           case AlertTarget.all:
             return true;
           case AlertTarget.bureau:
-            return role == UserRole.president || role == UserRole.secretaire || role == UserRole.tresorier;
+            return role == UserRole.president || role == UserRole.secretaire || role == UserRole.tresorier || role == UserRole.conseiller;
           case AlertTarget.ordinary:
             return role == UserRole.membre;
           case AlertTarget.manual:

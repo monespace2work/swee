@@ -4,6 +4,7 @@ import '../../providers/user_provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import 'package:intl/intl.dart';
+import '../auth/auth_wrapper.dart';
 
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
@@ -52,8 +53,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context).userProfile;
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDark = themeProvider.isDarkMode;
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
 
     if (user == null) return const Center(child: CircularProgressIndicator());
 
@@ -78,34 +78,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           _buildInfoTile('Date de naissance', DateFormat('dd/MM/yyyy').format(user.dateNaissance), isDark),
           
           const Divider(height: 40),
-          
-          Text('PRÉFÉRENCES D\'AFFICHAGE', 
-            style: TextStyle(
-              fontSize: 12, 
-              fontWeight: FontWeight.bold, 
-              color: isDark ? AppTheme.gold : AppTheme.darkBlue,
-              letterSpacing: 1.2
-            )
-          ),
-          const SizedBox(height: 8),
-          Card(
-            elevation: 0,
-            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: SwitchListTile(
-              title: const Text('Mode Sombre', style: TextStyle(fontWeight: FontWeight.w500)),
-              subtitle: Text(isDark ? 'Activé' : 'Désactivé'),
-              secondary: Icon(
-                isDark ? Icons.dark_mode : Icons.light_mode,
-                color: isDark ? AppTheme.gold : AppTheme.darkBlue,
-              ),
-              value: isDark,
-              onChanged: (bool value) {
-                themeProvider.toggleTheme(value);
-              },
-            ),
-          ),
-          const Divider(height: 40),
 
           if (_isEditing) ...[
             TextField(
@@ -128,7 +100,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           ],
           const SizedBox(height: 40),
           ElevatedButton(
-            onPressed: () => AuthService().signOut(),
+            onPressed: () async {
+              await AuthService().signOut();
+              if (mounted) {
+                // Fermer le dialogue si on est dans un dialogue, ou simplement naviguer
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => AuthWrapper()),
+                  (route) => false,
+                );
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.withOpacity(0.1), 
               foregroundColor: Colors.red,

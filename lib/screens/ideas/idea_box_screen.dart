@@ -68,7 +68,10 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final isSecretary = user?.role == UserRole.secretaire;
+    final isModerator = user?.role == UserRole.secretaire || user?.role == UserRole.conseiller;
+    // Le secrétaire est le seul à ne pas avoir le formulaire de soumission par défaut
+    // pour éviter l'auto-suggestion, mais on l'autorise pour le Conseiller.
+    final canSubmit = user?.role != UserRole.secretaire;
 
     return RefreshIndicator(
       onRefresh: () => userProvider.refreshProfile(),
@@ -78,7 +81,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (!isSecretary) ...[
+            if (canSubmit) ...[
               Text(
                 'Soumettre une idée', 
                 style: TextStyle(
@@ -118,13 +121,13 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
             Row(
               children: [
                 Icon(
-                  isSecretary ? Icons.analytics : Icons.history,
+                  isModerator ? Icons.analytics : Icons.history,
                   color: isDark ? AppTheme.gold : AppTheme.darkBlue,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    isSecretary ? 'Point des suggestions (Tous)' : 'Mes suggestions', 
+                    isModerator ? 'Point des suggestions (Tous)' : 'Mes suggestions', 
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
                   ),
                 ),
@@ -148,7 +151,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
             const SizedBox(height: 16),
             
             StreamBuilder<List<IdeaModel>>(
-              stream: isSecretary 
+              stream: isModerator 
                   ? _dbService.getAllIdeas() 
                   : _dbService.getMemberIdeas(user?.id ?? ''),
               builder: (context, snapshot) {
@@ -199,7 +202,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
                         Icon(Icons.lightbulb_outline, size: 48, color: Colors.grey.withOpacity(0.5)),
                         const SizedBox(height: 16),
                         Text(
-                          isSecretary 
+                          isModerator 
                               ? 'Aucune suggestion à traiter.' 
                               : 'Vous n\'avez pas encore soumis de suggestions.',
                           textAlign: TextAlign.center,
@@ -217,7 +220,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final idea = ideas[index];
-                    return _buildIdeaCard(context, idea, isSecretary, isDark);
+                    return _buildIdeaCard(context, idea, isModerator, isDark);
                   },
                 );
               },
@@ -228,7 +231,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
     );
   }
 
-  Widget _buildIdeaCard(BuildContext context, IdeaModel idea, bool isSecretary, bool isDark) {
+  Widget _buildIdeaCard(BuildContext context, IdeaModel idea, bool isModerator, bool isDark) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -261,7 +264,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
                 _buildStatusChip(idea.status),
               ],
             ),
-            if (isSecretary)
+            if (isModerator)
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: Text(

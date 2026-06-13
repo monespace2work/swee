@@ -36,6 +36,7 @@ class AuthService {
     required String nom,
     required String prenom,
     String genre = 'M',
+    MemberModel? existingMember,
   }) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -44,22 +45,38 @@ class AuthService {
       );
 
       if (result.user != null) {
-        final newMember = MemberModel(
-          id: result.user!.uid,
-          username: username,
-          email: email,
-          nom: nom,
-          prenom: prenom,
-          telephone: "",
-          adresse: "",
-          dateNaissance: DateTime.now(),
-          genre: genre,
-          dateInscription: DateTime.now(),
-          role: UserRole.membre,
-          status: UserStatus.enAttenteTresorier,
-        );
-
-        await _db.collection('members').doc(newMember.id).set(newMember.toMap());
+        final uid = result.user!.uid;
+        
+        if (existingMember != null) {
+          // Migration du profil existant (créé par le secrétaire) vers le UID Auth
+          final data = existingMember.toMap();
+          data['username'] = username;
+          // On garde les autres infos (nom, prenom, role, status) du profil validé
+          
+          await _db.collection('members').doc(uid).set(data);
+          
+          // Supprimer l'ancien document temporaire si l'ID est différent
+          if (existingMember.id != uid) {
+            await _db.collection('members').doc(existingMember.id).delete();
+          }
+        } else {
+          // Fallback au cas où (ne devrait plus arriver avec le nouveau flux)
+          final newMember = MemberModel(
+            id: uid,
+            username: username,
+            email: email,
+            nom: nom,
+            prenom: prenom,
+            telephone: "",
+            adresse: "",
+            dateNaissance: DateTime.now(),
+            genre: genre,
+            dateInscription: DateTime.now(),
+            role: UserRole.membre,
+            status: UserStatus.enAttenteTresorier,
+          );
+          await _db.collection('members').doc(uid).set(newMember.toMap());
+        }
       }
       return result;
     } on FirebaseAuthException catch (e) {

@@ -58,65 +58,98 @@ class UserAlertsScreen extends StatelessWidget {
               final alert = alerts[index];
               final bool isViewed = alert.viewedBy.containsKey(user.id);
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                elevation: isViewed ? 0 : 2,
-                color: isViewed 
-                    ? (isDark ? Colors.white10 : Colors.grey[100])
-                    : (isDark ? AppTheme.darkBlue : Colors.white),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: isViewed ? BorderSide.none : BorderSide(color: Colors.orange.withOpacity(0.5)),
+              return Dismissible(
+                key: Key(alert.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 20.0),
+                  color: Colors.red,
+                  child: const Icon(Icons.delete, color: Colors.white),
                 ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: CircleAvatar(
-                    backgroundColor: isViewed ? Colors.grey : Colors.orange,
-                    child: const Icon(Icons.campaign, color: Colors.white),
+                onDismissed: (direction) {
+                  _hideAlert(context, alert.id, user.id);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Alerte supprimée de votre vue')),
+                  );
+                },
+                child: Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  elevation: isViewed ? 0 : 2,
+                  color: isViewed 
+                      ? (isDark ? Colors.white10 : Colors.grey[100])
+                      : (isDark ? AppTheme.darkBlue : Colors.white),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: isViewed ? BorderSide.none : BorderSide(color: Colors.orange.withOpacity(0.5)),
                   ),
-                  title: Text(
-                    alert.title,
-                    style: TextStyle(
-                      fontWeight: isViewed ? FontWeight.normal : FontWeight.bold,
-                      color: isViewed ? Colors.grey : (isDark ? Colors.white : AppTheme.darkBlue),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: CircleAvatar(
+                      backgroundColor: isViewed ? Colors.grey : Colors.orange,
+                      child: const Icon(Icons.campaign, color: Colors.white),
                     ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(alert.details),
-                      const SizedBox(height: 8),
-                      Text(
-                        DateFormat('dd/MM/yyyy HH:mm').format(alert.createdAt),
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    title: Text(
+                      alert.title,
+                      style: TextStyle(
+                        fontWeight: isViewed ? FontWeight.normal : FontWeight.bold,
+                        color: isViewed ? Colors.grey : (isDark ? Colors.white : AppTheme.darkBlue),
                       ),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: Icon(
-                      isViewed ? Icons.delete_outline : Icons.check_circle_outline,
-                      color: isViewed ? Colors.red.withOpacity(0.5) : Colors.green,
                     ),
-                    tooltip: isViewed ? 'Supprimer de ma vue' : 'Marquer comme lu',
-                    onPressed: () async {
-                      if (!isViewed) {
-                        await DatabaseService().markAlertAsViewed(alert.id, user.id);
-                      } else {
-                        // For "deleting from view", we might need a separate field or just hide it.
-                        // Given the request, let's implement a 'hiddenBy' or similar.
-                        // Or we can just use another field. 
-                        // Let's assume 'viewedBy' is enough to mean "I've seen it" 
-                        // and we need a way to REALLY hide it.
-                        _hideAlert(context, alert.id, user.id);
-                      }
-                    },
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 4),
+                        Text(alert.details),
+                        const SizedBox(height: 8),
+                        Text(
+                          DateFormat('dd/MM/yyyy HH:mm').format(alert.createdAt),
+                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isViewed)
+                          IconButton(
+                            icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+                            tooltip: 'Marquer comme lu',
+                            onPressed: () => DatabaseService().markAlertAsViewed(alert.id, user.id),
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          tooltip: 'Supprimer',
+                          onPressed: () => _confirmDismiss(context, alert.id, user.id),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  void _confirmDismiss(BuildContext context, String alertId, String userId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer l\'alerte ?'),
+        content: const Text('Cette alerte sera retirée de votre liste.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () {
+              _hideAlert(context, alertId, userId);
+              Navigator.pop(context);
+            },
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

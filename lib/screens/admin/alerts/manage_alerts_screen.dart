@@ -27,18 +27,38 @@ class _ManageAlertsScreenState extends State<ManageAlertsScreen> {
         title: const Text('Gérer les Alertes'),
       ),
       body: StreamBuilder<List<AlertModel>>(
-        stream: _dbService.getAlertsByInitiator(userProfile.id),
+        stream: _dbService.getAllAlerts(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    const SizedBox(height: 16),
+                    Text('Erreur lors du chargement des alertes : ${snapshot.error}'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => setState(() {}),
+                      child: const Text('Réessayer'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Aucune alerte lancée.'));
+            return const Center(child: Text('Aucune alerte trouvée.'));
           }
 
           final alerts = snapshot.data!;
-          // Sort by createdAt descending
-          alerts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          // Sort by createdAt descending (already done by service, but safety first)
+          // alerts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
           return ListView.builder(
             itemCount: alerts.length,
@@ -143,9 +163,29 @@ class _ManageAlertsScreenState extends State<ManageAlertsScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
           TextButton(
-            onPressed: () {
-              _dbService.deleteAlert(alert.id);
-              Navigator.pop(context);
+            onPressed: () async {
+              try {
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+                Navigator.pop(context); // Ferme le dialogue
+                
+                await _dbService.deleteAlert(alert.id);
+                
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Alerte supprimée avec succès'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur lors de la suppression : $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             }, 
             child: const Text('Supprimer', style: TextStyle(color: Colors.red)),
           ),

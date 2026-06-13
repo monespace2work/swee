@@ -8,11 +8,11 @@ import '../../services/database_service.dart';
 import '../feed/feed_screen.dart';
 import '../ideas/idea_box_screen.dart';
 import '../finance/my_account_screen.dart';
-import '../profile/my_profile_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../alerts/user_alerts_screen.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/app_header_title.dart';
+import '../../widgets/user_menu_button.dart';
 import '../auth/auth_wrapper.dart';
 
 class NavigationWrapper extends StatefulWidget {
@@ -36,14 +36,12 @@ class _NavigationWrapperState extends State<NavigationWrapper> {
       const FeedScreen(),
       const IdeaBoxScreen(),
       const MyAccountScreen(),
-      const MyProfileScreen(),
     ];
 
     final List<BottomNavigationBarItem> items = [
       const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
       const BottomNavigationBarItem(icon: Icon(Icons.lightbulb), label: 'Idées'),
       const BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Mon Compte'),
-      const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
     ];
 
     // Ajustement de l'index si nécessaire (ex: si on était sur Idées et qu'on change de rôle)
@@ -101,11 +99,7 @@ class _NavigationWrapperState extends State<NavigationWrapper> {
                   MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
                 ),
               ),
-            IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Déconnexion',
-              onPressed: () => _showLogoutDialog(context),
-            ),
+            const UserMenuButton(),
           ],
         ),
         body: IndexedStack(
@@ -122,33 +116,4 @@ class _NavigationWrapperState extends State<NavigationWrapper> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context); // Fermer le dialog
-              await AuthService().signOut();
-              if (context.mounted) {
-                // On s'assure de vider toute la pile de navigation pour revenir à l'AuthWrapper (Login)
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const AuthWrapper()),
-                  (route) => false,
-                );
-              }
-            },
-            child: const Text('Se déconnecter', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -8,6 +8,7 @@ import '../alerts/manage_alerts_screen.dart';
 import '../../../services/auth_service.dart';
 import '../../auth/auth_wrapper.dart';
 import '../../../widgets/app_header_title.dart';
+import '../../../widgets/user_menu_button.dart';
 import '../../../theme/app_theme.dart';
 
 class TreasurerDashboard extends StatelessWidget {
@@ -30,11 +31,7 @@ class TreasurerDashboard extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const NavigationWrapper()),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Déconnexion',
-            onPressed: () => _showLogoutDialog(context),
-          ),
+          const UserMenuButton(),
         ],
       ),
       body: SingleChildScrollView(
@@ -258,35 +255,6 @@ class TreasurerDashboard extends StatelessWidget {
             fontSize: 13,
           ),
         ),
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await AuthService().signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const AuthWrapper()),
-                  (route) => false,
-                );
-              }
-            },
-            child: const Text('Se déconnecter', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
   }

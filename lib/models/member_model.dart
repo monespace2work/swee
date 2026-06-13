@@ -1,4 +1,4 @@
-enum UserRole { secretaire, tresorier, president, membre }
+enum UserRole { secretaire, tresorier, president, membre, conseiller }
 enum UserStatus { enAttenteTresorier, enAttentePresident, actif, suspendu, desactive }
 
 class MemberModel {
