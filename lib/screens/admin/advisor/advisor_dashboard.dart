@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:swee/providers/user_provider.dart';
 import 'package:swee/screens/home/navigation_wrapper.dart';
 import 'package:swee/screens/admin/secretary/idea_moderation_screen.dart';
 import 'package:swee/screens/admin/secretary/post_management_screen.dart';
@@ -15,6 +17,7 @@ class AdvisorDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dbService = DatabaseService();
+    final userProvider = Provider.of<UserProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -38,37 +41,40 @@ class AdvisorDashboard extends StatelessWidget {
         crossAxisSpacing: 12,
         childAspectRatio: MediaQuery.of(context).size.width > 900 ? 4 : 2.5,
         children: [
-          StreamBuilder<List<IdeaModel>>(
-            stream: dbService.getAllIdeas(),
-            builder: (context, snapshot) {
-              final ideas = snapshot.data ?? [];
-              final pending = ideas.where((i) => i.status == IdeaStatus.enAttenteTraitement).length;
-              final processed = ideas.where((i) => i.status != IdeaStatus.enAttenteTraitement).length;
-              return _buildMenuCard(
-                context, 
-                'Suggestions', 
-                Icons.lightbulb, 
-                const IdeaModerationScreen(),
-                stats: snapshot.hasData ? '$pending Nouvelles • $processed Traitées' : '...',
-              );
-            }
-          ),
-          StreamBuilder<List<PostModel>>(
-            stream: dbService.getPosts(),
-            builder: (context, snapshot) {
-              final posts = snapshot.data ?? [];
-              final active = posts.where((p) => p.isActive).length;
-              final inactive = posts.where((p) => !p.isActive).length;
-              return _buildMenuCard(
-                context, 
-                'Publications', 
-                Icons.post_add, 
-                const PostManagementScreen(),
-                stats: snapshot.hasData ? '$active Actives • $inactive Désact.' : '...',
-              );
-            }
-          ),
-          _buildMenuCard(context, 'Alertes', Icons.notification_important, const ManageAlertsScreen()),
+          if (userProvider.hasPermission('can_moderate_ideas'))
+            StreamBuilder<List<IdeaModel>>(
+              stream: dbService.getAllIdeas(),
+              builder: (context, snapshot) {
+                final ideas = snapshot.data ?? [];
+                final pending = ideas.where((i) => i.status == IdeaStatus.enAttenteTraitement).length;
+                final processed = ideas.where((i) => i.status != IdeaStatus.enAttenteTraitement).length;
+                return _buildMenuCard(
+                  context, 
+                  'Suggestions', 
+                  Icons.lightbulb, 
+                  const IdeaModerationScreen(),
+                  stats: snapshot.hasData ? '$pending Nouvelles • $processed Traitées' : '...',
+                );
+              }
+            ),
+          if (userProvider.hasPermission('can_manage_posts'))
+            StreamBuilder<List<PostModel>>(
+              stream: dbService.getPosts(),
+              builder: (context, snapshot) {
+                final posts = snapshot.data ?? [];
+                final active = posts.where((p) => p.isActive).length;
+                final inactive = posts.where((p) => !p.isActive).length;
+                return _buildMenuCard(
+                  context, 
+                  'Publications', 
+                  Icons.post_add, 
+                  const PostManagementScreen(),
+                  stats: snapshot.hasData ? '$active Actives • $inactive Désact.' : '...',
+                );
+              }
+            ),
+          if (userProvider.hasPermission('can_manage_alerts'))
+            _buildMenuCard(context, 'Alertes', Icons.notification_important, const ManageAlertsScreen()),
         ],
       ),
     );

@@ -1,46 +1,80 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/member_model.dart';
 import '../services/auth_service.dart';
+import '../services/database_service.dart';
 
 class UserProvider with ChangeNotifier {
   MemberModel? _userProfile;
-  bool _isLoading = true; // Initialisé à true pour attendre la vérification initiale
+  Map<String, dynamic> _allPermissions = {};
+  bool _isLoading = true; 
   final AuthService _authService = AuthService();
+  final DatabaseService _dbService = DatabaseService();
+  StreamSubscription? _profileSubscription;
+  StreamSubscription? _permissionsSubscription;
 
   MemberModel? get userProfile => _userProfile;
   bool get isLoading => _isLoading;
 
   UserProvider() {
-    _authService.user.listen((user) async {
-      _isLoading = true;
+    // Écouter les permissions globales
+    _permissionsSubscription = _dbService.getAllRolePermissions().listen((perms) {
+      _allPermissions = perms;
       notifyListeners();
+    });
+
+    _authService.user.listen((user) {
+      _profileSubscription?.cancel();
       
-      try {
-        if (user != null) {
-          _userProfile = await _authService.getMemberProfile(user.uid);
-          debugPrint("UserProvider: Profil chargé pour ${user.uid} -> ${_userProfile?.role}");
-        } else {
-          _userProfile = null;
-          debugPrint("UserProvider: Aucun utilisateur connecté");
-        }
-      } catch (e) {
-        debugPrint("Erreur UserProvider: $e");
+      if (user != null) {
+        _isLoading = true;
+        notifyListeners();
+
+        _profileSubscription = _authService.getMemberProfileStream(user.uid).listen(
+          (profile) {
+            _userProfile = profile;
+            _isLoading = false;
+            debugPrint("UserProvider: Profil mis à jour -> ${profile?.role}");
+            notifyListeners();
+          },
+          onError: (e) {
+            debugPrint("Erreur UserProvider Stream: $e");
+            _isLoading = false;
+            notifyListeners();
+          }
+        );
+      } else {
         _userProfile = null;
-      } finally {
         _isLoading = false;
         notifyListeners();
       }
-    }, onError: (error) {
-      debugPrint("Erreur Stream Auth: $error");
-      _isLoading = false;
-      notifyListeners();
     });
+  }
+
+  bool hasPermission(String permissionId) {
+    if (_userProfile == null) return false;
+    if (_userProfile!.role == UserRole.president) return true; // Le président a tout
+    
+    final roleName = _userProfile!.role.name;
+    final rolePerms = _allPermissions[roleName] as Map<String, dynamic>?;
+    
+    return rolePerms?[permissionId] == true;
+  }
+
+  @override
+  void dispose() {
+    _profileSubscription?.cancel();
+    _permissionsSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> refreshProfile() async {
     if (_userProfile != null) {
-      _userProfile = await _authService.getMemberProfile(_userProfile!.id);
-      notifyListeners();
+      final updated = await _authService.getMemberProfile(_userProfile!.id);
+      if (updated != null) {
+        _userProfile = updated;
+        notifyListeners();
+      }
     }
   }
 }

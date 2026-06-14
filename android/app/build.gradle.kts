@@ -24,6 +24,13 @@ android {
 
     buildTypes {
         release {
+            // Optimisation : Activer le code shrinking, l'obfuscation et l'optimisation
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("debug")
         }
     }

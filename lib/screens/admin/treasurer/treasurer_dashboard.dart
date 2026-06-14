@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:swee/providers/user_provider.dart';
 import '../../home/navigation_wrapper.dart';
 import '../../../services/database_service.dart';
 import '../../../models/member_model.dart';
 import 'record_payment_screen.dart';
 import 'payment_management_screen.dart';
 import '../alerts/manage_alerts_screen.dart';
-import '../../../services/auth_service.dart';
-import '../../auth/auth_wrapper.dart';
 import '../../../widgets/app_header_title.dart';
 import '../../../widgets/user_menu_button.dart';
 import '../../../theme/app_theme.dart';
@@ -17,6 +17,7 @@ class TreasurerDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dbService = DatabaseService();
+    final userProvider = Provider.of<UserProvider>(context);
     final isWeb = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
@@ -38,7 +39,7 @@ class TreasurerDashboard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           children: [
-            // Menu Principal en 3D
+            // Menu Principal
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: GridView.count(
@@ -49,93 +50,98 @@ class TreasurerDashboard extends StatelessWidget {
                 crossAxisSpacing: 20,
                 childAspectRatio: isWeb ? 3.5 : 4.5,
                 children: [
-                  _build3DButton(
-                    context,
-                    title: 'Enregistrer un paiement',
-                    subtitle: 'Cotisations et dons',
-                    icon: Icons.add_card,
-                    color: AppTheme.darkBlue,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RecordPaymentScreen())),
-                  ),
-                  _build3DButton(
-                    context,
-                    title: 'Situation des paiements',
-                    subtitle: 'Historique et rapports',
-                    icon: Icons.history,
-                    color: AppTheme.darkBlue,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentManagementScreen())),
-                  ),
-                  _build3DButton(
-                    context,
-                    title: 'Gérer les Alertes',
-                    subtitle: 'Rappels de paiement',
-                    icon: Icons.notification_important,
-                    color: AppTheme.darkBlue,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageAlertsScreen())),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 40),
-            const Divider(),
-            
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Icon(Icons.pending_actions, color: AppTheme.gold),
-                  SizedBox(width: 8),
-                  Text('Validations en attente (Niveau 2)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-            
-            StreamBuilder<List<MemberModel>>(
-              stream: dbService.getMembers(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                final pending = snapshot.data!.where((m) => m.status == UserStatus.enAttenteTresorier).toList();
-                
-                if (pending.isEmpty) {
-                  return Container(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      children: [
-                        Icon(Icons.check_circle_outline, size: 48, color: Colors.green.withOpacity(0.5)),
-                        const SizedBox(height: 16),
-                        const Text('Tout est à jour ! Aucune validation requise.', style: TextStyle(color: Colors.grey)),
-                      ],
+                  if (userProvider.hasPermission('can_manage_payments'))
+                    _build3DButton(
+                      context,
+                      title: 'Enregistrer un paiement',
+                      subtitle: 'Cotisations et dons',
+                      icon: Icons.add_card,
+                      color: AppTheme.darkBlue,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RecordPaymentScreen())),
                     ),
-                  );
-                }
+                  if (userProvider.hasPermission('can_manage_payments'))
+                    _build3DButton(
+                      context,
+                      title: 'Situation des paiements',
+                      subtitle: 'Historique et rapports',
+                      icon: Icons.history,
+                      color: AppTheme.darkBlue,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentManagementScreen())),
+                    ),
+                  if (userProvider.hasPermission('can_manage_alerts'))
+                    _build3DButton(
+                      context,
+                      title: 'Gérer les Alertes',
+                      subtitle: 'Rappels de paiement',
+                      icon: Icons.notification_important,
+                      color: AppTheme.darkBlue,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageAlertsScreen())),
+                    ),
+                ],
+              ),
+            ),
 
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: pending.length,
-                  itemBuilder: (context, index) {
-                    final member = pending[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppTheme.gold.withOpacity(0.1),
-                          child: Text(member.nom[0], style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
-                        ),
-                        title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(member.email, style: const TextStyle(fontSize: 12)),
-                        trailing: _build3DValidationButton(
-                          onPressed: () => _validateMember(member.id),
-                          label: 'Valider',
-                        ),
+            if (userProvider.hasPermission('can_manage_members')) ...[
+              const SizedBox(height: 40),
+              const Divider(),
+              
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Icon(Icons.pending_actions, color: AppTheme.gold),
+                    SizedBox(width: 8),
+                    Text('Validations en attente (Niveau 2)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              
+              StreamBuilder<List<MemberModel>>(
+                stream: dbService.getMembers(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  final pending = snapshot.data!.where((m) => m.status == UserStatus.enAttenteTresorier).toList();
+                  
+                  if (pending.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(40),
+                      child: Column(
+                        children: [
+                          Icon(Icons.check_circle_outline, size: 48, color: Colors.green.withOpacity(0.5)),
+                          const SizedBox(height: 16),
+                          const Text('Tout est à jour ! Aucune validation requise.', style: TextStyle(color: Colors.grey)),
+                        ],
                       ),
                     );
-                  },
-                );
-              },
-            ),
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: pending.length,
+                    itemBuilder: (context, index) {
+                      final member = pending[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppTheme.gold.withOpacity(0.1),
+                            child: Text(member.nom[0], style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
+                          ),
+                          title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(member.email, style: const TextStyle(fontSize: 12)),
+                          trailing: _build3DValidationButton(
+                            onPressed: () => _validateMember(member.id),
+                            label: 'Valider',
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
           ],
         ),
       ),

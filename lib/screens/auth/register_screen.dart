@@ -19,6 +19,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _nomController = TextEditingController();
   final _prenomController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _adresseController = TextEditingController();
+  final _photoUrlController = TextEditingController();
+  String _selectedGenre = 'M';
+  DateTime _selectedBirthDate = DateTime(1990, 1, 1);
   
   final AuthService _authService = AuthService();
   final DatabaseService _dbService = DatabaseService();
@@ -72,6 +77,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _nomController.text = member.nom;
         _prenomController.text = member.prenom;
         _usernameController.text = member.username;
+        _phoneController.text = member.telephone;
+        _adresseController.text = member.adresse;
+        _photoUrlController.text = member.photoUrl;
+        _selectedGenre = member.genre;
+        _selectedBirthDate = member.dateNaissance;
         _currentStep = 1;
         _isLoading = false;
       });
@@ -103,15 +113,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
           }
         }
 
+        // Création d'un objet membre mis à jour à partir des saisies (si on veut permettre la modif au dernier moment)
+        final updatedMember = MemberModel(
+          id: _preRegisteredMember?.id ?? '',
+          username: username,
+          email: email,
+          nom: _nomController.text.trim(),
+          prenom: _prenomController.text.trim(),
+          telephone: _phoneController.text.trim(),
+          adresse: _adresseController.text.trim(),
+          dateNaissance: _selectedBirthDate,
+          genre: _selectedGenre,
+          photoUrl: _photoUrlController.text.trim(),
+          dateInscription: _preRegisteredMember?.dateInscription ?? DateTime.now(),
+          role: _preRegisteredMember?.role ?? UserRole.membre,
+          status: _preRegisteredMember?.status ?? UserStatus.enAttenteTresorier,
+        );
 
         // Création dans Firebase Auth avec migration du profil
         await _authService.signUp(
           email: email,
           password: _passwordController.text,
           username: username,
-          nom: _nomController.text.trim(),
-          prenom: _prenomController.text.trim(),
-          existingMember: _preRegisteredMember,
+          nom: updatedMember.nom,
+          prenom: updatedMember.prenom,
+          genre: updatedMember.genre,
+          telephone: updatedMember.telephone,
+          adresse: updatedMember.adresse,
+          dateNaissance: updatedMember.dateNaissance,
+          photoUrl: updatedMember.photoUrl,
+          existingMember: updatedMember,
         );
 
         // Déconnexion immédiate pour revenir à l'état "déconnecté" proprement
@@ -244,31 +275,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 24),
             TextFormField(
               controller: _prenomController,
-              enabled: false, // On ne change pas le prénom validé
-              style: const TextStyle(color: Colors.black54),
-              decoration: const InputDecoration(labelText: 'Prénom', fillColor: Colors.white, filled: true),
+              style: const TextStyle(color: Colors.black),
+              decoration: const InputDecoration(labelText: 'Prénom *', fillColor: Colors.white, filled: true),
+              validator: (v) => v!.isEmpty ? 'Requis' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _nomController,
-              enabled: false, // On ne change pas le nom validé
-              style: const TextStyle(color: Colors.black54),
-              decoration: const InputDecoration(labelText: 'Nom', fillColor: Colors.white, filled: true),
+              style: const TextStyle(color: Colors.black),
+              decoration: const InputDecoration(labelText: 'Nom *', fillColor: Colors.white, filled: true),
+              validator: (v) => v!.isEmpty ? 'Requis' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _usernameController,
               style: const TextStyle(color: Colors.black),
-              decoration: const InputDecoration(labelText: 'Nom d\'utilisateur', labelStyle: TextStyle(color: Colors.black54), fillColor: Colors.white, filled: true),
+              decoration: const InputDecoration(labelText: 'Nom d\'utilisateur *', labelStyle: TextStyle(color: Colors.black54), fillColor: Colors.white, filled: true),
               validator: (v) => v!.isEmpty ? 'Requis' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _passwordController,
               style: const TextStyle(color: Colors.black),
-              decoration: const InputDecoration(labelText: 'Créez votre mot de passe (6+ car.)', labelStyle: TextStyle(color: Colors.black54), fillColor: Colors.white, filled: true),
+              decoration: const InputDecoration(labelText: 'Créez votre mot de passe (6+ car.) *', labelStyle: TextStyle(color: Colors.black54), fillColor: Colors.white, filled: true),
               obscureText: true,
               validator: (v) => v!.length < 6 ? 'Trop court' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _phoneController,
+              style: const TextStyle(color: Colors.black),
+              decoration: const InputDecoration(labelText: 'Téléphone', labelStyle: TextStyle(color: Colors.black54), fillColor: Colors.white, filled: true),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _adresseController,
+              style: const TextStyle(color: Colors.black),
+              decoration: const InputDecoration(labelText: 'Adresse', labelStyle: TextStyle(color: Colors.black54), fillColor: Colors.white, filled: true),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _photoUrlController,
+              style: const TextStyle(color: Colors.black),
+              decoration: const InputDecoration(labelText: 'URL Photo de profil', labelStyle: TextStyle(color: Colors.black54), fillColor: Colors.white, filled: true),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _selectedGenre,
+              decoration: const InputDecoration(labelText: 'Genre *', fillColor: Colors.white, filled: true),
+              items: const [
+                DropdownMenuItem(value: 'M', child: Text('Masculin')),
+                DropdownMenuItem(value: 'F', child: Text('Féminin')),
+              ],
+              onChanged: (val) => setState(() => _selectedGenre = val!),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              title: const Text('Date de naissance'),
+              subtitle: Text('${_selectedBirthDate.day}/${_selectedBirthDate.month}/${_selectedBirthDate.year}'),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedBirthDate,
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                );
+                if (picked != null) setState(() => _selectedBirthDate = picked);
+              },
             ),
             const SizedBox(height: 32),
             _isLoading 

@@ -336,7 +336,11 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
     final prenomController = TextEditingController();
     final emailController = TextEditingController();
     final phoneController = TextEditingController();
+    final adresseController = TextEditingController();
+    final photoUrlController = TextEditingController();
     String selectedGenre = 'M';
+    DateTime selectedBirthDate = DateTime(1990, 1, 1);
+    DateTime registrationDate = DateTime.now();
     final isLargeScreen = MediaQuery.of(context).size.width > 900;
 
     showDialog(
@@ -350,22 +354,55 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(controller: nomController, decoration: const InputDecoration(labelText: 'Nom')),
+                  TextField(controller: nomController, decoration: const InputDecoration(labelText: 'Nom *')),
                   const SizedBox(height: 12),
-                  TextField(controller: prenomController, decoration: const InputDecoration(labelText: 'Prénom')),
+                  TextField(controller: prenomController, decoration: const InputDecoration(labelText: 'Prénom *')),
                   const SizedBox(height: 12),
-                  TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email')),
+                  TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email *')),
                   const SizedBox(height: 12),
                   TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Téléphone')),
                   const SizedBox(height: 12),
+                  TextField(controller: adresseController, decoration: const InputDecoration(labelText: 'Adresse')),
+                  const SizedBox(height: 12),
+                  TextField(controller: photoUrlController, decoration: const InputDecoration(labelText: 'URL Photo Profil')),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: selectedGenre,
-                    decoration: const InputDecoration(labelText: 'Sexe'),
+                    decoration: const InputDecoration(labelText: 'Genre *'),
                     items: const [
                       DropdownMenuItem(value: 'M', child: Text('Masculin')),
                       DropdownMenuItem(value: 'F', child: Text('Féminin')),
                     ],
                     onChanged: (val) => setState(() => selectedGenre = val!),
+                  ),
+                  const SizedBox(height: 12),
+                  ListTile(
+                    title: const Text('Date de naissance'),
+                    subtitle: Text('${selectedBirthDate.day}/${selectedBirthDate.month}/${selectedBirthDate.year}'),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedBirthDate,
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) setState(() => selectedBirthDate = picked);
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('Date d\'inscription'),
+                    subtitle: Text('${registrationDate.day}/${registrationDate.month}/${registrationDate.year}'),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: registrationDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) setState(() => registrationDate = picked);
+                    },
                   ),
                 ],
               ),
@@ -375,18 +412,26 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
             ElevatedButton(
               onPressed: () async {
+                if (nomController.text.isEmpty || prenomController.text.isEmpty || emailController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Veuillez remplir les champs obligatoires (*)')),
+                  );
+                  return;
+                }
+
                 final newId = FirebaseFirestore.instance.collection('members').doc().id;
                 final newMember = MemberModel(
                   id: newId,
                   username: emailController.text.split('@').first,
-                  email: emailController.text,
-                  nom: nomController.text,
-                  prenom: prenomController.text,
-                  telephone: phoneController.text,
-                  adresse: '',
-                  dateNaissance: DateTime.now(),
+                  email: emailController.text.trim().toLowerCase(),
+                  nom: nomController.text.trim(),
+                  prenom: prenomController.text.trim(),
+                  telephone: phoneController.text.trim(),
+                  adresse: adresseController.text.trim(),
+                  dateNaissance: selectedBirthDate,
                   genre: selectedGenre,
-                  dateInscription: DateTime.now(),
+                  photoUrl: photoUrlController.text.trim(),
+                  dateInscription: registrationDate,
                   role: UserRole.membre,
                   status: UserStatus.enAttenteTresorier,
                 );
@@ -472,8 +517,12 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
   late TextEditingController _prenomController;
   late TextEditingController _phoneController;
   late TextEditingController _adresseController;
+  late TextEditingController _photoUrlController;
   late UserStatus _selectedStatus;
   late UserRole _selectedRole;
+  late String _selectedGenre;
+  late DateTime _selectedBirthDate;
+  late DateTime _selectedRegistrationDate;
 
   @override
   void initState() {
@@ -482,8 +531,12 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
     _prenomController = TextEditingController(text: widget.member.prenom);
     _phoneController = TextEditingController(text: widget.member.telephone);
     _adresseController = TextEditingController(text: widget.member.adresse);
+    _photoUrlController = TextEditingController(text: widget.member.photoUrl);
     _selectedStatus = widget.member.status;
     _selectedRole = widget.member.role;
+    _selectedGenre = widget.member.genre;
+    _selectedBirthDate = widget.member.dateNaissance;
+    _selectedRegistrationDate = widget.member.dateInscription;
   }
 
   @override
@@ -492,6 +545,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
     _prenomController.dispose();
     _phoneController.dispose();
     _adresseController.dispose();
+    _photoUrlController.dispose();
     super.dispose();
   }
 
@@ -660,6 +714,48 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
           _buildField(_prenomController, 'Prénom', isDark),
           _buildField(_phoneController, 'Téléphone', isDark),
           _buildField(_adresseController, 'Adresse', isDark),
+          _buildField(_photoUrlController, 'URL Photo Profil', isDark),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _selectedGenre,
+            dropdownColor: isDark ? AppTheme.deepNavy : Colors.white,
+            style: TextStyle(color: isDark ? Colors.white : AppTheme.darkBlue),
+            decoration: const InputDecoration(labelText: 'Genre', border: OutlineInputBorder()),
+            items: const [
+              DropdownMenuItem(value: 'M', child: Text('Masculin')),
+              DropdownMenuItem(value: 'F', child: Text('Féminin')),
+            ],
+            onChanged: (val) => setState(() => _selectedGenre = val!),
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            title: const Text('Date de naissance'),
+            subtitle: Text('${_selectedBirthDate.day}/${_selectedBirthDate.month}/${_selectedBirthDate.year}'),
+            trailing: const Icon(Icons.calendar_today),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedBirthDate,
+                firstDate: DateTime(1900),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) setState(() => _selectedBirthDate = picked);
+            },
+          ),
+          ListTile(
+            title: const Text('Date d\'inscription'),
+            subtitle: Text('${_selectedRegistrationDate.day}/${_selectedRegistrationDate.month}/${_selectedRegistrationDate.year}'),
+            trailing: const Icon(Icons.calendar_today),
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedRegistrationDate,
+                firstDate: DateTime(2000),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) setState(() => _selectedRegistrationDate = picked);
+            },
+          ),
         ],
         const SizedBox(height: 24),
         Text(
@@ -720,6 +816,10 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
                 'prenom': _prenomController.text,
                 'telephone': _phoneController.text,
                 'adresse': _adresseController.text,
+                'photoUrl': _photoUrlController.text,
+                'genre': _selectedGenre,
+                'dateNaissance': Timestamp.fromDate(_selectedBirthDate),
+                'dateInscription': Timestamp.fromDate(_selectedRegistrationDate),
                 'status': _selectedStatus.name,
                 'role': _selectedRole.name,
               });

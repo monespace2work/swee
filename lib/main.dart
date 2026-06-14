@@ -15,19 +15,21 @@ import 'package:intl/date_symbol_data_local.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await initializeDateFormatting('fr_FR', null);
-  
-  try {
-    await Firebase.initializeApp(
+  // Initialisation en parallèle pour gagner du temps au lancement
+  await Future.wait([
+    initializeDateFormatting('fr_FR', null),
+    Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
-    );
-    // Désactiver la persistance pour éviter les blocages dus à un cache corrompu (disque plein)
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: false,
-    );
-  } catch (e) {
-    debugPrint("Firebase initialization error: $e");
-  }
+    ).then((_) {
+      // Activer la persistance pour permettre un accès hors-ligne et un chargement instantané
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+    }).catchError((e) {
+      debugPrint("Firebase initialization error: $e");
+    }),
+  ]);
 
   runApp(
     MultiProvider(

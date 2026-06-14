@@ -11,6 +11,7 @@ class MemberModel {
   final String adresse;
   final DateTime dateNaissance;
   final String genre; // 'M' or 'F'
+  final String photoUrl;
   final DateTime dateInscription;
   final UserRole role;
   final UserStatus status;
@@ -26,6 +27,7 @@ class MemberModel {
     required this.adresse,
     required this.dateNaissance,
     required this.genre,
+    this.photoUrl = '',
     required this.dateInscription,
     required this.role,
     required this.status,
@@ -43,6 +45,7 @@ class MemberModel {
       adresse: data['adresse'] ?? '',
       dateNaissance: (data['dateNaissance'] as dynamic)?.toDate() ?? DateTime.now(),
       genre: data['genre'] ?? 'M',
+      photoUrl: data['photoUrl'] ?? '',
       dateInscription: (data['dateInscription'] as dynamic)?.toDate() ?? DateTime.now(),
       role: UserRole.values.firstWhere(
         (e) => e.toString().split('.').last == data['role'],
@@ -66,6 +69,7 @@ class MemberModel {
       'adresse': adresse,
       'dateNaissance': dateNaissance,
       'genre': genre,
+      'photoUrl': photoUrl,
       'dateInscription': dateInscription,
       'role': role.toString().split('.').last,
       'status': status.toString().split('.').last,

@@ -29,6 +29,15 @@ class AuthService {
     return null;
   }
 
+  Stream<MemberModel?> getMemberProfileStream(String uid) {
+    return _db.collection('members').doc(uid).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return MemberModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    });
+  }
+
   Future<UserCredential?> signUp({
     required String email,
     required String password,
@@ -36,6 +45,10 @@ class AuthService {
     required String nom,
     required String prenom,
     String genre = 'M',
+    String telephone = '',
+    String adresse = '',
+    DateTime? dateNaissance,
+    String photoUrl = '',
     MemberModel? existingMember,
   }) async {
     try {
@@ -51,7 +64,7 @@ class AuthService {
           // Migration du profil existant (créé par le secrétaire) vers le UID Auth
           final data = existingMember.toMap();
           data['username'] = username;
-          // On garde les autres infos (nom, prenom, role, status) du profil validé
+          // On garde les autres infos (nom, prenom, role, status, etc.) du profil validé
           
           await _db.collection('members').doc(uid).set(data);
           
@@ -60,17 +73,18 @@ class AuthService {
             await _db.collection('members').doc(existingMember.id).delete();
           }
         } else {
-          // Fallback au cas où (ne devrait plus arriver avec le nouveau flux)
+          // Fallback au cas où
           final newMember = MemberModel(
             id: uid,
             username: username,
             email: email,
             nom: nom,
             prenom: prenom,
-            telephone: "",
-            adresse: "",
-            dateNaissance: DateTime.now(),
+            telephone: telephone,
+            adresse: adresse,
+            dateNaissance: dateNaissance ?? DateTime.now(),
             genre: genre,
+            photoUrl: photoUrl,
             dateInscription: DateTime.now(),
             role: UserRole.membre,
             status: UserStatus.enAttenteTresorier,
