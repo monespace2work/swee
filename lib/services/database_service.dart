@@ -238,6 +238,9 @@ class DatabaseService {
       return snapshot.docs
           .map((doc) => AlertModel.fromMap(doc.data(), doc.id))
           .where((alert) {
+        // Celui qui lance une alerte ne doit pas la recevoir
+        if (alert.initiatorId == userId) return false;
+
         // Not yet viewed or dismissed by this user
         if (alert.viewedBy.containsKey(userId) || alert.dismissedBy.containsKey(userId)) return false;
         
@@ -275,6 +278,9 @@ class DatabaseService {
       return snapshot.docs
           .map((doc) => AlertModel.fromMap(doc.data(), doc.id))
           .where((alert) {
+        // Celui qui lance une alerte ne doit pas la recevoir
+        if (alert.initiatorId == userId) return false;
+
         // Not dismissed by this user
         if (alert.dismissedBy.containsKey(userId)) return false;
 

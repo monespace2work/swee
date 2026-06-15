@@ -19,6 +19,43 @@ class AdvisorDashboard extends StatelessWidget {
     final dbService = DatabaseService();
     final userProvider = Provider.of<UserProvider>(context);
 
+    final List<Widget> menuCards = [
+      if (userProvider.hasPermission('can_moderate_ideas'))
+        StreamBuilder<List<IdeaModel>>(
+          stream: dbService.getAllIdeas(),
+          builder: (context, snapshot) {
+            final ideas = snapshot.data ?? [];
+            final pending = ideas.where((i) => i.status == IdeaStatus.enAttenteTraitement).length;
+            final processed = ideas.where((i) => i.status != IdeaStatus.enAttenteTraitement).length;
+            return _buildMenuCard(
+              context, 
+              'Suggestions', 
+              Icons.lightbulb, 
+              const IdeaModerationScreen(),
+              stats: snapshot.hasData ? '$pending Nouvelles • $processed Traitées' : '...',
+            );
+          }
+        ),
+      if (userProvider.hasPermission('can_manage_posts'))
+        StreamBuilder<List<PostModel>>(
+          stream: dbService.getPosts(),
+          builder: (context, snapshot) {
+            final posts = snapshot.data ?? [];
+            final active = posts.where((p) => p.isActive).length;
+            final inactive = posts.where((p) => !p.isActive).length;
+            return _buildMenuCard(
+              context, 
+              'Publications', 
+              Icons.post_add, 
+              const PostManagementScreen(),
+              stats: snapshot.hasData ? '$active Actives • $inactive Désact.' : '...',
+            );
+          }
+        ),
+      if (userProvider.hasPermission('can_manage_alerts'))
+        _buildMenuCard(context, 'Alertes', Icons.notification_important, const ManageAlertsScreen()),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const AppHeaderTitle(showRole: true),
@@ -34,49 +71,33 @@ class AdvisorDashboard extends StatelessWidget {
           const UserMenuButton(),
         ],
       ),
-      body: GridView.count(
-        padding: const EdgeInsets.all(16),
-        crossAxisCount: MediaQuery.of(context).size.width > 900 ? 3 : 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: MediaQuery.of(context).size.width > 900 ? 4 : 2.5,
-        children: [
-          if (userProvider.hasPermission('can_moderate_ideas'))
-            StreamBuilder<List<IdeaModel>>(
-              stream: dbService.getAllIdeas(),
-              builder: (context, snapshot) {
-                final ideas = snapshot.data ?? [];
-                final pending = ideas.where((i) => i.status == IdeaStatus.enAttenteTraitement).length;
-                final processed = ideas.where((i) => i.status != IdeaStatus.enAttenteTraitement).length;
-                return _buildMenuCard(
-                  context, 
-                  'Suggestions', 
-                  Icons.lightbulb, 
-                  const IdeaModerationScreen(),
-                  stats: snapshot.hasData ? '$pending Nouvelles • $processed Traitées' : '...',
-                );
-              }
+      body: menuCards.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.lock_person, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Text('Accès restreint', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Text('Le Président doit vous accorder des permissions pour accéder aux outils du Conseiller.', textAlign: TextAlign.center),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NavigationWrapper())),
+                  child: const Text('Aller au Mode Membre'),
+                ),
+              ],
             ),
-          if (userProvider.hasPermission('can_manage_posts'))
-            StreamBuilder<List<PostModel>>(
-              stream: dbService.getPosts(),
-              builder: (context, snapshot) {
-                final posts = snapshot.data ?? [];
-                final active = posts.where((p) => p.isActive).length;
-                final inactive = posts.where((p) => !p.isActive).length;
-                return _buildMenuCard(
-                  context, 
-                  'Publications', 
-                  Icons.post_add, 
-                  const PostManagementScreen(),
-                  stats: snapshot.hasData ? '$active Actives • $inactive Désact.' : '...',
-                );
-              }
-            ),
-          if (userProvider.hasPermission('can_manage_alerts'))
-            _buildMenuCard(context, 'Alertes', Icons.notification_important, const ManageAlertsScreen()),
-        ],
-      ),
+          )
+        : GridView.count(
+            padding: const EdgeInsets.all(16),
+            crossAxisCount: MediaQuery.of(context).size.width > 900 ? 3 : 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: MediaQuery.of(context).size.width > 900 ? 4 : 2.5,
+            children: menuCards,
+          ),
     );
   }
 

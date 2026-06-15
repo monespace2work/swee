@@ -21,9 +21,11 @@ class UserMenuButton extends StatelessWidget {
           showDialog(
             context: context,
             builder: (context) => Dialog(
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500, maxHeight: 700),
+                constraints: const BoxConstraints(maxWidth: 500),
                 child: Scaffold(
+                  resizeToAvoidBottomInset: true, // Crucial pour éviter les débordements avec le clavier
                   appBar: AppBar(
                     title: const Text('Mon Profil'),
                     leading: IconButton(

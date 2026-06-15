@@ -56,9 +56,13 @@ class UserProvider with ChangeNotifier {
     if (_userProfile!.role == UserRole.president) return true; // Le président a tout
     
     final roleName = _userProfile!.role.name;
-    final rolePerms = _allPermissions[roleName] as Map<String, dynamic>?;
+    final rolePerms = _allPermissions[roleName];
     
-    return rolePerms?[permissionId] == true;
+    if (rolePerms is Map) {
+      return rolePerms[permissionId] == true;
+    }
+    
+    return false;
   }
 
   @override

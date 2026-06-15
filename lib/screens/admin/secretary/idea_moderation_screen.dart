@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../models/idea_model.dart';
+import '../../../models/member_model.dart';
 import '../../../services/database_service.dart';
+import '../../../providers/user_provider.dart';
 import 'create_post_screen.dart';
 
 class IdeaModerationScreen extends StatelessWidget {
@@ -9,6 +12,8 @@ class IdeaModerationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dbService = DatabaseService();
+    final userProvider = Provider.of<UserProvider>(context);
+    final currentUser = userProvider.userProfile;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Modération des Idées')),
@@ -18,16 +23,40 @@ class IdeaModerationScreen extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('Aucune suggestion pour le moment.'));
           }
           
-          final ideas = snapshot.data!;
+          final allIdeas = snapshot.data!;
+          final List<IdeaModel> filteredIdeas;
+
+          if (currentUser?.role == UserRole.president) {
+            filteredIdeas = allIdeas;
+          } else {
+            // Un admin ordinaire ne voit que ce qu'il a "publié" (modéré) 
+            // OU les nouvelles idées s'il a le droit de modération?
+            // Le prompt dit : "ne peuvent voir... que les elements qu'eux-meme ont publiées"
+            // Donc strictement parlant, ils ne voient pas les nouvelles idées.
+            // Cependant, pour pouvoir modérer, ils ont besoin de l'Inbox.
+            // J'interprète "publiées" comme "prises en charge".
+            
+            filteredIdeas = allIdeas.where((idea) {
+              // 1. Toujours voir les nouvelles idées en attente de traitement (sinon blocage)
+              if (idea.status == IdeaStatus.enAttenteTraitement) return true;
+              // 2. Voir ses propres modérations passées
+              return idea.moderatedBy == currentUser?.id;
+            }).toList();
+          }
+
+          if (filteredIdeas.isEmpty) {
+            return const Center(child: Text('Aucune suggestion à afficher.'));
+          }
 
           return ListView.builder(
-            itemCount: ideas.length,
+            itemCount: filteredIdeas.length,
             itemBuilder: (context, index) {
-              final idea = ideas[index];
+              final idea = filteredIdeas[index];
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: ListTile(
@@ -40,9 +69,14 @@ class IdeaModerationScreen extends StatelessWidget {
                       Text(idea.description),
                       const SizedBox(height: 8),
                       _buildStatusBadge(idea.status),
+                      if (idea.moderatedBy != null && currentUser?.role == UserRole.president)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text('Modéré par ID: ${idea.moderatedBy}', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                        ),
                     ],
                   ),
-                  trailing: _buildActions(context, idea, dbService),
+                  trailing: _buildActions(context, idea, dbService, currentUser?.id),
                 ),
               );
             },
@@ -52,7 +86,7 @@ class IdeaModerationScreen extends StatelessWidget {
     );
   }
 
-  Widget? _buildActions(BuildContext context, IdeaModel idea, DatabaseService dbService) {
+  Widget? _buildActions(BuildContext context, IdeaModel idea, DatabaseService dbService, String? currentUserId) {
     switch (idea.status) {
       case IdeaStatus.enAttenteTraitement:
         return Row(
@@ -61,16 +95,20 @@ class IdeaModerationScreen extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.check, color: Colors.green),
               tooltip: 'Valider pour publication',
-              onPressed: () => _updateIdeaStatus(context, idea.id, IdeaStatus.enAttentePublication, dbService),
+              onPressed: () => _updateIdeaStatus(context, idea.id, IdeaStatus.enAttentePublication, dbService, currentUserId),
             ),
             IconButton(
               icon: const Icon(Icons.close, color: Colors.red),
               tooltip: 'Rejeter (non conforme)',
-              onPressed: () => _updateIdeaStatus(context, idea.id, IdeaStatus.rejetee, dbService),
+              onPressed: () => _updateIdeaStatus(context, idea.id, IdeaStatus.rejetee, dbService, currentUserId),
             ),
           ],
         );
       case IdeaStatus.enAttentePublication:
+        // Seul le modérateur de l'idée (ou le président) peut finaliser la publication
+        if (idea.moderatedBy != null && idea.moderatedBy != currentUserId && currentUserId != null) {
+          return null; 
+        }
         return ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
           onPressed: () => Navigator.push(
@@ -122,15 +160,18 @@ class IdeaModerationScreen extends StatelessWidget {
     );
   }
 
-  void _updateIdeaStatus(BuildContext context, String id, IdeaStatus status, DatabaseService dbService) {
+  void _updateIdeaStatus(BuildContext context, String id, IdeaStatus status, DatabaseService dbService, String? currentUserId) {
     if (status == IdeaStatus.rejetee || status == IdeaStatus.enAttentePublication) {
-      _showResponseDialog(context, id, status, dbService);
+      _showResponseDialog(context, id, status, dbService, currentUserId);
     } else {
-      dbService.updateIdea(id, {'status': status.name});
+      dbService.updateIdea(id, {
+        'status': status.name,
+        'moderatedBy': currentUserId,
+      });
     }
   }
 
-  void _showResponseDialog(BuildContext context, String id, IdeaStatus status, DatabaseService dbService) {
+  void _showResponseDialog(BuildContext context, String id, IdeaStatus status, DatabaseService dbService, String? currentUserId) {
     final controller = TextEditingController();
     showDialog(
       context: context,
@@ -148,6 +189,7 @@ class IdeaModerationScreen extends StatelessWidget {
               dbService.updateIdea(id, {
                 'status': status.name,
                 'response': controller.text.trim(),
+                'moderatedBy': currentUserId,
               });
               Navigator.pop(context);
             }, 

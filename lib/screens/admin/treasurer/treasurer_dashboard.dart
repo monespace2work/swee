@@ -20,6 +20,62 @@ class TreasurerDashboard extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     final isWeb = MediaQuery.of(context).size.width > 900;
 
+    final List<Widget> actionButtons = [
+      if (userProvider.hasPermission('can_manage_payments'))
+        _build3DButton(
+          context,
+          title: 'Enregistrer un paiement',
+          subtitle: 'Cotisations et dons',
+          icon: Icons.add_card,
+          color: AppTheme.darkBlue,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RecordPaymentScreen())),
+        ),
+      if (userProvider.hasPermission('can_manage_payments'))
+        _build3DButton(
+          context,
+          title: 'Situation des paiements',
+          subtitle: 'Historique et rapports',
+          icon: Icons.history,
+          color: AppTheme.darkBlue,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentManagementScreen())),
+        ),
+      if (userProvider.hasPermission('can_manage_alerts'))
+        _build3DButton(
+          context,
+          title: 'Gérer les Alertes',
+          subtitle: 'Rappels de paiement',
+          icon: Icons.notification_important,
+          color: AppTheme.darkBlue,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageAlertsScreen())),
+        ),
+    ];
+
+    final bool showValidations = userProvider.hasPermission('can_manage_members');
+
+    if (actionButtons.isEmpty && !showValidations) {
+      return Scaffold(
+        appBar: AppBar(title: const AppHeaderTitle(showRole: true)),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_person, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text('Accès restreint', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Text('Le Président doit vous accorder des permissions pour accéder aux outils du Trésorier.', textAlign: TextAlign.center),
+              ),
+              TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NavigationWrapper())),
+                child: const Text('Aller au Mode Membre'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const AppHeaderTitle(showRole: true),
@@ -40,48 +96,21 @@ class TreasurerDashboard extends StatelessWidget {
         child: Column(
           children: [
             // Menu Principal
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: isWeb ? 3 : 1,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                childAspectRatio: isWeb ? 3.5 : 4.5,
-                children: [
-                  if (userProvider.hasPermission('can_manage_payments'))
-                    _build3DButton(
-                      context,
-                      title: 'Enregistrer un paiement',
-                      subtitle: 'Cotisations et dons',
-                      icon: Icons.add_card,
-                      color: AppTheme.darkBlue,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RecordPaymentScreen())),
-                    ),
-                  if (userProvider.hasPermission('can_manage_payments'))
-                    _build3DButton(
-                      context,
-                      title: 'Situation des paiements',
-                      subtitle: 'Historique et rapports',
-                      icon: Icons.history,
-                      color: AppTheme.darkBlue,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentManagementScreen())),
-                    ),
-                  if (userProvider.hasPermission('can_manage_alerts'))
-                    _build3DButton(
-                      context,
-                      title: 'Gérer les Alertes',
-                      subtitle: 'Rappels de paiement',
-                      icon: Icons.notification_important,
-                      color: AppTheme.darkBlue,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageAlertsScreen())),
-                    ),
-                ],
+            if (actionButtons.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: isWeb ? 3 : 1,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  childAspectRatio: isWeb ? 3.5 : 4.5,
+                  children: actionButtons,
+                ),
               ),
-            ),
 
-            if (userProvider.hasPermission('can_manage_members')) ...[
+            if (showValidations) ...[
               const SizedBox(height: 40),
               const Divider(),
               

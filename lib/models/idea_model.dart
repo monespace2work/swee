@@ -14,6 +14,7 @@ class IdeaModel {
   final DateTime createdAt;
   final IdeaStatus status;
   final String? response;
+  final String? moderatedBy;
 
   IdeaModel({
     required this.id,
@@ -24,6 +25,7 @@ class IdeaModel {
     required this.createdAt,
     required this.status,
     this.response,
+    this.moderatedBy,
   });
 
   factory IdeaModel.fromMap(Map<String, dynamic> data, String documentId) {
@@ -39,6 +41,7 @@ class IdeaModel {
         orElse: () => IdeaStatus.enAttenteTraitement,
       ),
       response: data['response'],
+      moderatedBy: data['moderatedBy'],
     );
   }
 
@@ -51,6 +54,7 @@ class IdeaModel {
       'createdAt': createdAt,
       'status': status.toString().split('.').last,
       'response': response,
+      'moderatedBy': moderatedBy,
     };
   }
 }

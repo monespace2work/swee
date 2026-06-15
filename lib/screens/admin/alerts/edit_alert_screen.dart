@@ -195,8 +195,24 @@ class _EditAlertScreenState extends State<EditAlertScreen> {
 
       if (widget.alert == null) {
         await _dbService.addAlert(alertData);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Votre alerte a été envoyée avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
         await _dbService.updateAlert(widget.alert!.id, alertData.toMap());
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Alerte mise à jour avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
 
       if (mounted) Navigator.pop(context);

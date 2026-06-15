@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../models/alert_model.dart';
+import '../../../models/member_model.dart';
 import '../../../services/database_service.dart';
 import '../../../providers/user_provider.dart';
 import 'edit_alert_screen.dart';
@@ -56,9 +57,18 @@ class _ManageAlertsScreenState extends State<ManageAlertsScreen> {
             return const Center(child: Text('Aucune alerte trouvée.'));
           }
 
-          final alerts = snapshot.data!;
-          // Sort by createdAt descending (already done by service, but safety first)
-          // alerts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          final allAlerts = snapshot.data!;
+          final List<AlertModel> alerts;
+
+          if (userProfile.role == UserRole.president) {
+            alerts = allAlerts;
+          } else {
+            alerts = allAlerts.where((a) => a.initiatorId == userProfile.id).toList();
+          }
+
+          if (alerts.isEmpty) {
+            return const Center(child: Text('Vous n\'avez créé aucune alerte.'));
+          }
 
           return ListView.builder(
             itemCount: alerts.length,

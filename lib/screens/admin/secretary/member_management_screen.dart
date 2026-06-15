@@ -6,6 +6,7 @@ import '../../../services/database_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/user_provider.dart';
 import '../../../widgets/user_menu_button.dart';
+import 'package:intl/intl.dart';
 
 enum MemberSortOption { alphabetical, chronological, status, gender }
 
@@ -608,10 +609,32 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
               )
             ),
             const SizedBox(height: 12),
+            if (mods.containsKey('photoUrl')) ...[
+              const Text('Nouvelle photo de profil :', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  mods['photoUrl'],
+                  height: 100,
+                  width: 100,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Wrap(
               spacing: 24,
               runSpacing: 12,
-              children: mods.entries.map((entry) {
+              children: mods.entries.where((e) => e.key != 'photoUrl').map((entry) {
+                String displayValue = entry.value.toString();
+                if (entry.value is Timestamp) {
+                  displayValue = DateFormat('dd/MM/yyyy').format((entry.value as Timestamp).toDate());
+                } else if (entry.key == 'genre') {
+                  displayValue = entry.value == 'M' ? 'Masculin' : 'Féminin';
+                }
+
                 return SizedBox(
                   width: isLargeScreen ? 240 : double.infinity,
                   child: Row(
@@ -626,7 +649,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
                       ),
                       Expanded(
                         child: Text(
-                          '${entry.value}', 
+                          displayValue,
                           style: TextStyle(
                             color: isDark ? AppTheme.darkBlue : Colors.orange,
                             fontWeight: isDark ? FontWeight.bold : null,

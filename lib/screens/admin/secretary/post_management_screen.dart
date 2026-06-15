@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../models/post_model.dart';
+import '../../../models/member_model.dart';
 import '../../../services/database_service.dart';
 import '../../../services/storage_service.dart';
+import '../../../providers/user_provider.dart';
 import 'create_post_screen.dart';
 
 class PostManagementScreen extends StatefulWidget {
@@ -19,10 +22,13 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
   final DatabaseService _dbService = DatabaseService();
   final StorageService _storageService = StorageService();
   String _searchQuery = '';
-  bool _sortAscending = false; // Par défaut décroissant (plus récent en haut)
+  bool _sortAscending = false;
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final currentUser = userProvider.userProfile;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestion des Publications'),
@@ -54,13 +60,18 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Erreur: ${snapshot.error}'));
-                }
                 
-                var posts = snapshot.data ?? [];
+                var allPosts = snapshot.data ?? [];
+                
+                // Filtrage selon le rôle (Super Admin voit tout, les autres voient les leurs)
+                List<PostModel> posts;
+                if (currentUser?.role == UserRole.president) {
+                  posts = allPosts;
+                } else {
+                  posts = allPosts.where((p) => p.authorId == currentUser?.id).toList();
+                }
 
-                // Filtrage
+                // Filtrage par recherche
                 if (_searchQuery.isNotEmpty) {
                   posts = posts.where((p) => 
                     p.title.toLowerCase().contains(_searchQuery) || 
@@ -68,7 +79,6 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
                   ).toList();
                 }
 
-                // Tri (getPosts est déjà trié DESC par Firestore, mais on gère le switch localement)
                 posts.sort((a, b) => _sortAscending 
                     ? a.createdAt.compareTo(b.createdAt) 
                     : b.createdAt.compareTo(a.createdAt));
