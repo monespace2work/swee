@@ -71,13 +71,8 @@ class StorageService {
       Uint8List data = await file.readAsBytes();
       debugPrint("StorageService: Envoi des données (${data.length} bytes)...");
       
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        // Optimisation spécifique pour le Web/Chrome
-        uploadTask = ref.putBlob(file, metadata);
-      } else {
-        uploadTask = ref.putData(data, metadata);
-      }
+      // Utilisation de putData pour toutes les plateformes (plus fiable sur Web)
+      UploadTask uploadTask = ref.putData(data, metadata);
       
       // Monitor progress
       uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {

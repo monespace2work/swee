@@ -608,26 +608,69 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
                 color: isDark ? AppTheme.darkBlue.withOpacity(0.8) : null,
               )
             ),
-            const SizedBox(height: 12),
-            if (mods.containsKey('photoUrl')) ...[
+            const SizedBox(height: 16),
+            if (mods['photoUrl'] != null && mods['photoUrl'].toString().isNotEmpty) ...[
               const Text('Nouvelle photo de profil :', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  mods['photoUrl'],
-                  height: 100,
-                  width: 100,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? AppTheme.darkBlue.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(11),
+                  child: Image.network(
+                    mods['photoUrl'],
+                    height: 150,
+                    width: 150,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return SizedBox(
+                        height: 150,
+                        width: 150,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 150,
+                      width: 150,
+                      color: Colors.grey[300],
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                          SizedBox(height: 8),
+                          Text('Image non disponible', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
             ],
             Wrap(
               spacing: 24,
               runSpacing: 12,
               children: mods.entries.where((e) => e.key != 'photoUrl').map((entry) {
+                String label = entry.key;
+                // Traduction des labels techniques pour le Secrétaire
+                switch(entry.key) {
+                  case 'nom': label = 'Nom'; break;
+                  case 'prenom': label = 'Prénom'; break;
+                  case 'telephone': label = 'Téléphone'; break;
+                  case 'adresse': label = 'Adresse'; break;
+                  case 'genre': label = 'Genre'; break;
+                  case 'dateNaissance': label = 'Date de Naissance'; break;
+                }
+
                 String displayValue = entry.value.toString();
                 if (entry.value is Timestamp) {
                   displayValue = DateFormat('dd/MM/yyyy').format((entry.value as Timestamp).toDate());
@@ -637,23 +680,23 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
 
                 return SizedBox(
                   width: isLargeScreen ? 240 : double.infinity,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${entry.key} : ', 
+                        label, 
                         style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: isDark ? AppTheme.darkBlue : null,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
+                          color: isDark ? AppTheme.darkBlue.withOpacity(0.7) : Colors.grey[600],
                         )
                       ),
-                      Expanded(
-                        child: Text(
-                          displayValue,
-                          style: TextStyle(
-                            color: isDark ? AppTheme.darkBlue : Colors.orange,
-                            fontWeight: isDark ? FontWeight.bold : null,
-                          )
+                      Text(
+                        displayValue,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDark ? AppTheme.darkBlue : Colors.orange[900],
+                          fontWeight: FontWeight.bold,
                         )
                       ),
                     ],
@@ -704,6 +747,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
   Widget _buildEditForm(bool isDark, bool isLargeScreen) {
     final currentUser = Provider.of<UserProvider>(context, listen: false).userProfile;
     final isPresident = currentUser?.role == UserRole.president;
+    final isSecretary = currentUser?.role == UserRole.secretaire;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -797,14 +841,14 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
           decoration: InputDecoration(
             labelText: 'Statut du compte',
             labelStyle: TextStyle(color: isDark ? Colors.white70 : AppTheme.darkBlue),
-            helperText: widget.member.status == UserStatus.actif && !isPresident
-              ? 'Seul le Président peut modifier un membre actif' 
+            helperText: widget.member.status == UserStatus.actif && !(isPresident || isSecretary)
+              ? 'Seul le Président ou le Secrétaire peut modifier un membre actif' 
               : null,
             helperStyle: const TextStyle(color: Colors.orange, fontSize: 11),
             border: const OutlineInputBorder(),
           ),
-          // Désactiver le changement si déjà actif et que l'utilisateur n'est pas président
-          onChanged: (widget.member.status == UserStatus.actif && !isPresident)
+          // Le Secrétaire peut désormais modifier le statut même si le membre est actif
+          onChanged: (widget.member.status == UserStatus.actif && !(isPresident || isSecretary))
             ? null 
             : (val) => setState(() => _selectedStatus = val!),
           items: UserStatus.values.map((status) => DropdownMenuItem(
@@ -820,6 +864,8 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
           decoration: InputDecoration(
             labelText: 'Rôle',
             labelStyle: TextStyle(color: isDark ? Colors.white70 : AppTheme.darkBlue),
+            helperText: !isPresident ? 'Seul le Président peut modifier le rôle' : null,
+            helperStyle: const TextStyle(color: Colors.orange, fontSize: 11),
             border: const OutlineInputBorder(),
           ),
           onChanged: !isPresident ? null : (val) => setState(() => _selectedRole = val!),

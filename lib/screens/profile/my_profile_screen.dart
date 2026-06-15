@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
@@ -32,6 +32,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   String? _selectedGenre;
   
   XFile? _newProfileImage;
+  Uint8List? _webPreviewBytes;
 
   @override
   void initState() {
@@ -41,13 +42,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
   void _initControllers() {
     final user = Provider.of<UserProvider>(context, listen: false).userProfile;
-    _phoneController = TextEditingController(text: user?.telephone);
-    _addressController = TextEditingController(text: user?.adresse);
-    _firstNameController = TextEditingController(text: user?.prenom);
-    _lastNameController = TextEditingController(text: user?.nom);
+    _phoneController = TextEditingController(text: user?.telephone ?? '');
+    _addressController = TextEditingController(text: user?.adresse ?? '');
+    _firstNameController = TextEditingController(text: user?.prenom ?? '');
+    _lastNameController = TextEditingController(text: user?.nom ?? '');
     _selectedBirthDate = user?.dateNaissance;
     _selectedGenre = user?.genre;
     _newProfileImage = null;
+    _webPreviewBytes = null;
   }
 
   @override
@@ -88,8 +90,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       );
 
       if (croppedFile != null) {
+        final bytes = await croppedFile.readAsBytes();
         setState(() {
           _newProfileImage = XFile(croppedFile.path);
+          _webPreviewBytes = bytes;
           _isEditing = true; 
         });
       }
@@ -122,23 +126,47 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       if (_newProfileImage != null) {
         debugPrint("MyProfileScreen: Upload de la nouvelle photo...");
         uploadedImageUrl = await StorageService().uploadProfileImage(_newProfileImage!, user.id);
+        
+        if (uploadedImageUrl == null) {
+          throw Exception("L'upload de la photo a échoué. Veuillez réessayer.");
+        }
         debugPrint("MyProfileScreen: Photo uploadée: $uploadedImageUrl");
       }
 
-      final Map<String, dynamic> updates = {
-        'telephone': _phoneController.text.trim(),
-        'adresse': _addressController.text.trim(),
-        'prenom': _firstNameController.text.trim(),
-        'nom': _lastNameController.text.trim(),
-        'genre': _selectedGenre,
-      };
-
-      if (_selectedBirthDate != null) {
+      // Construction de la map des modifications (uniquement les changements)
+      final Map<String, dynamic> updates = {};
+      
+      final phone = _phoneController.text.trim();
+      if (phone != user.telephone) updates['telephone'] = phone;
+      
+      final address = _addressController.text.trim();
+      if (address != user.adresse) updates['adresse'] = address;
+      
+      final firstName = _firstNameController.text.trim();
+      if (firstName != user.prenom) updates['prenom'] = firstName;
+      
+      final lastName = _lastNameController.text.trim();
+      if (lastName != user.nom) updates['nom'] = lastName;
+      
+      if (_selectedGenre != null && _selectedGenre != user.genre) {
+        updates['genre'] = _selectedGenre;
+      }
+      
+      if (_selectedBirthDate != null && 
+          (_selectedBirthDate!.year != user.dateNaissance.year || 
+           _selectedBirthDate!.month != user.dateNaissance.month || 
+           _selectedBirthDate!.day != user.dateNaissance.day)) {
         updates['dateNaissance'] = Timestamp.fromDate(_selectedBirthDate!);
       }
 
       if (uploadedImageUrl != null) {
         updates['photoUrl'] = uploadedImageUrl;
+      }
+
+      if (updates.isEmpty) {
+        setState(() => _isUploading = false);
+        setState(() => _isEditing = false);
+        return;
       }
 
       debugPrint("MyProfileScreen: Envoi à DatabaseService: $updates");
@@ -174,8 +202,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     if (user == null) return const Center(child: CircularProgressIndicator());
 
     ImageProvider? profileImage;
-    if (_newProfileImage != null) {
-      profileImage = NetworkImage(_newProfileImage!.path);
+    if (_webPreviewBytes != null) {
+      profileImage = MemoryImage(_webPreviewBytes!);
     } else if (user.photoUrl.isNotEmpty) {
       profileImage = NetworkImage(user.photoUrl);
     }

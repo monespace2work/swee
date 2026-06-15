@@ -53,16 +53,53 @@ class UserProvider with ChangeNotifier {
 
   bool hasPermission(String permissionId) {
     if (_userProfile == null) return false;
-    if (_userProfile!.role == UserRole.president) return true; // Le président a tout
+    
+    // Le président a tout par défaut
+    if (_userProfile!.role == UserRole.president) return true;
     
     final roleName = _userProfile!.role.name;
-    final rolePerms = _allPermissions[roleName];
     
-    if (rolePerms is Map) {
-      return rolePerms[permissionId] == true;
+    // Si des permissions sont définies en BDD pour ce rôle, on les utilise (priorité)
+    if (_allPermissions.containsKey(roleName)) {
+      final rolePerms = _allPermissions[roleName];
+      if (rolePerms is Map) {
+        final hasPerm = rolePerms[permissionId] == true;
+        debugPrint("UserProvider: Permission '$permissionId' pour '$roleName' (BDD) -> $hasPerm");
+        return hasPerm;
+      }
     }
     
-    return false;
+    // Sinon, on applique des permissions par défaut selon le rôle pour éviter le blocage
+    final defaultPerm = _getDefaultPermission(_userProfile!.role, permissionId);
+    debugPrint("UserProvider: Permission '$permissionId' pour '$roleName' (Défaut) -> $defaultPerm");
+    return defaultPerm;
+  }
+
+  bool _getDefaultPermission(UserRole role, String permissionId) {
+    switch (role) {
+      case UserRole.secretaire:
+        return [
+          'can_manage_members',
+          'can_manage_posts',
+          'can_moderate_ideas',
+          'can_edit_settings',
+          'can_manage_alerts'
+        ].contains(permissionId);
+      case UserRole.tresorier:
+        return [
+          'can_manage_payments',
+          'can_manage_members',
+          'can_manage_alerts'
+        ].contains(permissionId);
+      case UserRole.conseiller:
+        return [
+          'can_moderate_ideas',
+          'can_manage_posts',
+          'can_manage_alerts'
+        ].contains(permissionId);
+      default:
+        return false;
+    }
   }
 
   @override

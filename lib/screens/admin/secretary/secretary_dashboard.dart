@@ -118,13 +118,69 @@ class SecretaryDashboard extends StatelessWidget {
               ],
             ),
           )
-        : GridView.count(
-            padding: const EdgeInsets.all(16),
-            crossAxisCount: MediaQuery.of(context).size.width > 900 ? 3 : 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: MediaQuery.of(context).size.width > 900 ? 4 : 2.5,
-            children: menuCards,
+        : SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text('Tableau de Bord Secrétaire', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ),
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  crossAxisCount: MediaQuery.of(context).size.width > 900 ? 3 : 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: MediaQuery.of(context).size.width > 900 ? 4 : 2.5,
+                  children: menuCards,
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 32, 16, 8),
+                  child: Text('Validations de Profil en Attente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                StreamBuilder<List<MemberModel>>(
+                  stream: dbService.getMembers(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                    
+                    final pending = snapshot.data!.where((m) => m.pendingModifications != null).toList();
+                    
+                    if (pending.isEmpty) return const Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Center(child: Text('Aucune modification à valider.')),
+                    );
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: pending.length,
+                      itemBuilder: (context, index) {
+                        final member = pending[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: ListTile(
+                            leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                            title: Text('${member.prenom} ${member.nom}'),
+                            subtitle: const Text('Demande de modification de profil'),
+                            trailing: const Icon(Icons.chevron_right, color: Colors.orange),
+                            onTap: () => Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (context) => const MemberManagementScreen())
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
     );
   }
