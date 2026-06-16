@@ -164,14 +164,14 @@ class SecretaryDashboard extends StatelessWidget {
                         return Card(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           child: ListTile(
-                            leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                            leading: CircleAvatar(
+                              backgroundImage: member.photoUrl.isNotEmpty ? NetworkImage(member.photoUrl) : null,
+                              child: member.photoUrl.isEmpty ? const Icon(Icons.person_outline) : null,
+                            ),
                             title: Text('${member.prenom} ${member.nom}'),
                             subtitle: const Text('Demande de modification de profil'),
                             trailing: const Icon(Icons.chevron_right, color: Colors.orange),
-                            onTap: () => Navigator.push(
-                              context, 
-                              MaterialPageRoute(builder: (context) => const MemberManagementScreen())
-                            ),
+                            onTap: () => _showMemberDetailsDirectly(context, member, dbService),
                           ),
                         );
                       },
@@ -183,6 +183,55 @@ class SecretaryDashboard extends StatelessWidget {
             ),
           ),
     );
+  }
+
+  void _showMemberDetailsDirectly(BuildContext context, MemberModel member, DatabaseService dbService) {
+    final isLargeScreen = MediaQuery.of(context).size.width > 900;
+    
+    if (isLargeScreen) {
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppBar(
+                  title: const Text('Validation de Modification'),
+                  automaticallyImplyLeading: false,
+                  actions: [IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context))],
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+                ),
+                Expanded(
+                  child: MemberDetailsView(
+                    member: member, 
+                    dbService: dbService,
+                    scrollController: ScrollController(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (context) => DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) => MemberDetailsView(
+            member: member, 
+            dbService: dbService,
+            scrollController: scrollController,
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildMenuCard(BuildContext context, String title, IconData icon, Widget screen, {String? stats}) {

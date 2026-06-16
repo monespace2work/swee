@@ -55,7 +55,9 @@ class MemberModel {
         (e) => e.toString().split('.').last == data['status'],
         orElse: () => UserStatus.enAttenteTresorier,
       ),
-      pendingModifications: data['pendingModifications'],
+      pendingModifications: data['pendingModifications'] != null 
+          ? Map<String, dynamic>.from(data['pendingModifications']) 
+          : null,
     );
   }
 

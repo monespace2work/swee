@@ -609,8 +609,13 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
               )
             ),
             const SizedBox(height: 16),
-            if (mods['photoUrl'] != null && mods['photoUrl'].toString().isNotEmpty) ...[
+            if (mods.containsKey('photoUrl')) ...[
               const Text('Nouvelle photo de profil :', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                'Lien détecté: ${mods['photoUrl'].toString().substring(0, mods['photoUrl'].toString().length > 30 ? 30 : mods['photoUrl'].toString().length)}...', 
+                style: const TextStyle(fontSize: 10, color: Colors.blue)
+              ),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
@@ -620,34 +625,31 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(11),
                   child: Image.network(
-                    mods['photoUrl'],
-                    height: 150,
-                    width: 150,
+                    mods['photoUrl'].toString(),
+                    height: 200,
+                    width: double.infinity,
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
-                      return SizedBox(
-                        height: 150,
-                        width: 150,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                : null,
-                          ),
-                        ),
+                      return const SizedBox(
+                        height: 200,
+                        child: Center(child: CircularProgressIndicator()),
                       );
                     },
                     errorBuilder: (context, error, stackTrace) => Container(
-                      height: 150,
-                      width: 150,
+                      height: 200,
+                      width: double.infinity,
                       color: Colors.grey[300],
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.broken_image, color: Colors.grey, size: 40),
-                          SizedBox(height: 8),
-                          Text('Image non disponible', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          const Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                          const SizedBox(height: 8),
+                          const Text('Problème d\'affichage (CORS ou réseau)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(error.toString(), style: const TextStyle(fontSize: 8, color: Colors.red), textAlign: TextAlign.center),
+                          ),
                         ],
                       ),
                     ),
@@ -734,14 +736,88 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
   }
 
   void _handleValidation(bool approve) async {
-    if (approve) {
-      final updatedData = Map<String, dynamic>.from(widget.member.pendingModifications!);
-      updatedData['pendingModifications'] = FieldValue.delete();
-      await widget.dbService.updateMember(widget.member.id, updatedData);
-    } else {
-      await widget.dbService.updateMember(widget.member.id, {'pendingModifications': FieldValue.delete()});
+    // Capturer les données nécessaires avant toute opération asynchrone
+    final String memberId = widget.member.id;
+    final Map<String, dynamic>? pendingMods = widget.member.pendingModifications;
+    
+    // Si on approuve mais qu'il n'y a plus de modifs, on arrête
+    if (approve && (pendingMods == null || pendingMods.isEmpty)) {
+      if (mounted) Navigator.of(context).pop();
+      return;
     }
-    if (mounted) Navigator.pop(context);
+
+    // Références locales pour éviter les problèmes de contexte après await
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    try {
+      if (approve) {
+        // 1. Préparer les données à appliquer
+        final Map<String, dynamic> dataToApply = Map<String, dynamic>.from(pendingMods!);
+        
+        // Nettoyage de sécurité pour Firestore Web
+        dataToApply.removeWhere((key, value) => value == null);
+        
+        // S'assurer qu'on ne réinjecte pas accidentellement le champ pendingModifications lui-même
+        dataToApply.remove('pendingModifications');
+        
+        // 2. Créer l'objet de mise à jour final qui inclut la suppression de la demande
+        final Map<String, dynamic> finalUpdate = {
+          ...dataToApply,
+          'pendingModifications': FieldValue.delete(),
+        };
+
+        debugPrint("Validation: Envoi des données -> $finalUpdate");
+        await widget.dbService.updateMember(memberId, finalUpdate);
+      } else {
+        // Rejet : On supprime juste les modifications en attente
+        await widget.dbService.updateMember(memberId, {
+          'pendingModifications': FieldValue.delete()
+        });
+      }
+      
+      if (mounted) {
+        navigator.pop();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(approve ? 'Modifications appliquées avec succès' : 'Modifications rejetées'),
+            backgroundColor: approve ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      String errorMessage = e.toString();
+      if (e is FirebaseException) {
+        errorMessage = "Erreur Firebase [${e.code}]: ${e.message}";
+      }
+      
+      debugPrint("ERREUR VALIDATION: $errorMessage");
+      
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Échec: $errorMessage'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: 'DÉTAILS',
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Détail de l\'erreur'),
+                    content: SingleChildScrollView(child: Text(errorMessage)),
+                    actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fermer'))],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildEditForm(bool isDark, bool isLargeScreen) {
