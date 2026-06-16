@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import '../../../models/post_model.dart';
 import '../../../models/idea_model.dart';
@@ -56,7 +57,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     super.dispose();
   }
 
+  bool _isPickingImage = false;
+
   Future<void> _pickImage() async {
+    if (_isPickingImage) return;
+    setState(() => _isPickingImage = true);
+    
     try {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
@@ -65,18 +71,54 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         maxHeight: 1080,
         imageQuality: 85,
       );
-      if (image != null) {
-        setState(() {
-          _image = image;
-          _selectedAsset = null;
-        });
+      
+      if (image == null) {
+        if (mounted) setState(() => _isPickingImage = false);
+        return;
       }
+
+      // Délai de stabilisation
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      CroppedFile? croppedFile;
+      try {
+        croppedFile = await ImageCropper().cropImage(
+          sourcePath: image.path,
+          aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Recadrer',
+              toolbarColor: const Color(0xFF002366),
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.ratio16x9,
+              lockAspectRatio: true,
+              hideBottomControls: true,
+            ),
+            IOSUiSettings(
+              title: 'Recadrer',
+            ),
+          ],
+        );
+      } catch (e) {
+        debugPrint("Erreur recadrage: $e");
+      }
+
+      final String finalPath = croppedFile?.path ?? image.path;
+
+      setState(() {
+        _image = XFile(finalPath);
+        _selectedAsset = null;
+      });
     } catch (e) {
       debugPrint("Error picking image: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la sélection de l\'image: $e')),
+          SnackBar(content: Text('Erreur : $e')),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingImage = false);
       }
     }
   }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import '../../../models/post_model.dart';
 import '../../../models/member_model.dart';
@@ -231,10 +232,37 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
                         imageQuality: 85,
                       );
                       if (img != null) {
-                        setDialogState(() => newImage = img);
+                        CroppedFile? croppedFile;
+                        try {
+                          croppedFile = await ImageCropper().cropImage(
+                            sourcePath: img.path,
+                            aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
+                            uiSettings: [
+                              AndroidUiSettings(
+                                toolbarTitle: 'Recadrer l\'image',
+                                initAspectRatio: CropAspectRatioPreset.ratio16x9,
+                                lockAspectRatio: true,
+                              ),
+                              IOSUiSettings(
+                                title: 'Recadrer l\'image',
+                                aspectRatioLockEnabled: true,
+                              ),
+                            ],
+                          );
+                        } catch (e) {
+                          debugPrint("Erreur recadrage: $e");
+                        }
+
+                        final String finalPath = croppedFile?.path ?? img.path;
+                        setDialogState(() => newImage = XFile(finalPath));
                       }
                     } catch (e) {
                       debugPrint("Error picking image: $e");
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erreur : $e')),
+                        );
+                      }
                     }
                   },
                   icon: const Icon(Icons.image),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import '../../../services/database_service.dart';
@@ -61,16 +62,56 @@ class _AssociationSettingsScreenState extends State<AssociationSettingsScreen> {
     super.dispose();
   }
 
+  bool _isPickingLogo = false;
+
   Future<void> _pickLogo() async {
-    final picker = ImagePicker();
-    final img = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 500,
-      maxHeight: 500,
-      imageQuality: 85,
-    );
-    if (img != null) {
-      setState(() => _newLogoFile = img);
+    if (_isPickingLogo) return;
+    setState(() => _isPickingLogo = true);
+
+    try {
+      final picker = ImagePicker();
+      final img = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 500,
+        maxHeight: 500,
+        imageQuality: 85,
+      );
+      if (img != null) {
+        CroppedFile? croppedFile;
+        try {
+          croppedFile = await ImageCropper().cropImage(
+            sourcePath: img.path,
+            aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+            uiSettings: [
+              AndroidUiSettings(
+                toolbarTitle: 'Recadrer le logo',
+                initAspectRatio: CropAspectRatioPreset.square,
+                lockAspectRatio: true,
+              ),
+              IOSUiSettings(
+                title: 'Recadrer le logo',
+                aspectRatioLockEnabled: true,
+              ),
+            ],
+          );
+        } catch (e) {
+          debugPrint("Erreur recadrage logo: $e");
+        }
+
+        final String finalPath = croppedFile?.path ?? img.path;
+        setState(() => _newLogoFile = XFile(finalPath));
+      }
+    } catch (e) {
+      debugPrint("Error picking logo: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingLogo = false);
+      }
     }
   }
 
