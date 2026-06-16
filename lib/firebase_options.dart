@@ -64,6 +64,6 @@ class DefaultFirebaseOptions {
     appId: '1:975146007258:android:6c3cef41bc520e9d9ec3e3',
     messagingSenderId: '975146007258',
     projectId: 'swee-8966a',
-    storageBucket: 'swee-8966a.firebasestorage.app',
+    storageBucket: 'gs://swee-8966a.firebasestorage.app',
   );
 }

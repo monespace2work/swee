@@ -38,6 +38,21 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   void initState() {
     super.initState();
     _initControllers();
+    _checkLostData();
+  }
+
+  Future<void> _checkLostData() async {
+    final ImagePicker picker = ImagePicker();
+    final LostDataResponse response = await picker.retrieveLostData();
+    if (response.isEmpty) return;
+    if (response.file != null) {
+      final bytes = await response.file!.readAsBytes();
+      setState(() {
+        _newProfileImage = response.file;
+        _webPreviewBytes = bytes;
+        _isEditing = true;
+      });
+    }
   }
 
   void _initControllers() {
@@ -61,42 +76,74 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickAndCropImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedFile != null) {
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: pickedFile.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Recadrer la photo',
-            toolbarColor: AppTheme.darkBlue,
-            toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: true,
-          ),
-          IOSUiSettings(
-            title: 'Recadrer la photo',
-            aspectRatioLockEnabled: true,
-          ),
-          WebUiSettings(
-            context: context,
-            presentStyle: WebPresentStyle.page,
-            size: const CropperSize(width: 400, height: 400),
-          ),
-        ],
-      );
+  bool _isPickingImage = false;
 
-      if (croppedFile != null) {
-        final bytes = await croppedFile.readAsBytes();
-        setState(() {
-          _newProfileImage = XFile(croppedFile.path);
-          _webPreviewBytes = bytes;
-          _isEditing = true; 
-        });
+  Future<void> _pickAndCropImage() async {
+    if (_isPickingImage) return;
+    setState(() => _isPickingImage = true);
+
+    try {
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+      
+      if (pickedFile == null) {
+        if (mounted) setState(() => _isPickingImage = false);
+        return;
       }
+
+      // Délai pour laisser le système respirer
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // Tentative de recadrage
+      CroppedFile? croppedFile;
+      try {
+        croppedFile = await ImageCropper().cropImage(
+          sourcePath: pickedFile.path,
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Recadrer',
+              toolbarColor: const Color(0xFF002366),
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: true,
+              hideBottomControls: true, // Moins de contrôles = moins de risques de crash
+            ),
+            IOSUiSettings(
+              title: 'Recadrer',
+            ),
+          ],
+        );
+      } catch (e) {
+        debugPrint("Erreur recadrage: $e");
+      }
+
+      // Utilisation du fichier recadré s'il existe, sinon du fichier original
+      final String finalPath = croppedFile?.path ?? pickedFile.path;
+      final bytes = await (croppedFile != null ? croppedFile.readAsBytes() : pickedFile.readAsBytes());
+
+      if (mounted) {
+        setState(() {
+          _newProfileImage = XFile(finalPath);
+          _webPreviewBytes = bytes;
+          _isEditing = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(croppedFile != null ? 'Photo recadrée.' : 'Photo sélectionnée.')),
+        );
+      }
+    } catch (e) {
+      debugPrint("Erreur sélection image: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPickingImage = false);
     }
   }
 
@@ -125,11 +172,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       String? uploadedImageUrl;
       if (_newProfileImage != null) {
         debugPrint("MyProfileScreen: Upload de la nouvelle photo...");
+        // On essaye l'upload, l'erreur sera catchée plus bas
         uploadedImageUrl = await StorageService().uploadProfileImage(_newProfileImage!, user.id);
-        
-        if (uploadedImageUrl == null) {
-          throw Exception("L'upload de la photo a échoué. Veuillez réessayer.");
-        }
         debugPrint("MyProfileScreen: Photo uploadée: $uploadedImageUrl");
       }
 
@@ -164,8 +208,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       }
 
       if (updates.isEmpty) {
-        setState(() => _isUploading = false);
-        setState(() => _isEditing = false);
+        if (mounted) {
+          setState(() {
+            _isUploading = false;
+            _isEditing = false;
+          });
+        }
         return;
       }
 

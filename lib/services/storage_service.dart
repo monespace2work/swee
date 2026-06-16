@@ -53,46 +53,42 @@ class StorageService {
 
   Future<String?> uploadProfileImage(XFile file, String userId) async {
     try {
-      debugPrint("StorageService: Upload profil pour $userId");
-      String extension = file.path.split('.').last.toLowerCase();
-      if (extension.contains('?')) extension = extension.split('?').first; 
-      if (extension.length > 4 || extension.isEmpty) extension = 'jpg';
-
-      String fileName = 'profiles/$userId/${DateTime.now().millisecondsSinceEpoch}.$extension';
-      debugPrint("StorageService: Chemin final: $fileName");
+      debugPrint("StorageService: Début upload profil pour $userId");
       
-      Reference ref = _storage.ref().child(fileName);
-      
-      SettableMetadata metadata = SettableMetadata(
-        contentType: 'image/$extension',
-      );
-
-      debugPrint("StorageService: Lecture des bytes...");
-      Uint8List data = await file.readAsBytes();
-      debugPrint("StorageService: Envoi des données (${data.length} bytes)...");
-      
-      // Utilisation de putData pour toutes les plateformes (plus fiable sur Web)
-      UploadTask uploadTask = ref.putData(data, metadata);
-      
-      // Monitor progress
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        double progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        debugPrint('StorageService: Progress: ${progress.toStringAsFixed(2)} %');
-      }, onError: (e) {
-        debugPrint('StorageService: Error in stream: $e');
-      });
-
-      TaskSnapshot snapshot = await uploadTask;
-      String url = await snapshot.ref.getDownloadURL();
-      debugPrint("StorageService: Upload profil réussi: $url");
-      return url;
-    } catch (e) {
-      debugPrint("StorageService Profile Upload ERREUR: $e");
-      if (e is FirebaseException) {
-        debugPrint("Firebase Error Code: ${e.code}");
-        debugPrint("Firebase Error Message: ${e.message}");
+      String extension = 'jpg';
+      if (file.name.contains('.')) {
+        extension = file.name.split('.').last.toLowerCase();
       }
-      return null;
+      
+      final String fileName = 'profiles/$userId/${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final Reference ref = _storage.ref().child(fileName);
+      
+      final metadata = SettableMetadata(contentType: 'image/$extension');
+
+      // Lecture sécurisée des bytes
+      final Uint8List data = await file.readAsBytes();
+      
+      debugPrint("StorageService: Tentative d'envoi de ${data.length} bytes...");
+      
+      // On utilise putData qui est plus universel
+      final UploadTask uploadTask = ref.putData(data, metadata);
+      
+      // On attend la fin complète
+      final TaskSnapshot snapshot = await uploadTask.whenComplete(() => null);
+      
+      if (snapshot.state == TaskState.success) {
+        final String url = await snapshot.ref.getDownloadURL();
+        debugPrint("StorageService: Upload réussi, URL générée.");
+        return url;
+      } else {
+        throw Exception("L'état de l'upload est : ${snapshot.state}");
+      }
+    } catch (e) {
+      debugPrint("StorageService ERREUR: $e");
+      if (e.toString().contains('object-not-found')) {
+        throw Exception("Le stockage Firebase n'est pas encore prêt ou le bucket est mal configuré.");
+      }
+      rethrow;
     }
   }
 }
