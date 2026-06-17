@@ -110,10 +110,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               toolbarWidgetColor: Colors.white,
               initAspectRatio: CropAspectRatioPreset.square,
               lockAspectRatio: true,
-              hideBottomControls: true, // Moins de contrôles = moins de risques de crash
+              hideBottomControls: true,
             ),
             IOSUiSettings(
               title: 'Recadrer',
+            ),
+            WebUiSettings(
+              context: context,
+              presentStyle: WebPresentStyle.page,
             ),
           ],
         );
@@ -253,7 +257,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     if (_webPreviewBytes != null) {
       profileImage = MemoryImage(_webPreviewBytes!);
     } else if (user.photoUrl.isNotEmpty) {
-      profileImage = NetworkImage(user.photoUrl);
+      // Sur le Web, on ajoute un paramètre de cache pour forcer le rafraîchissement si besoin
+      final url = kIsWeb ? '${user.photoUrl}${user.photoUrl.contains('?') ? '&' : '?'}t=${DateTime.now().millisecondsSinceEpoch}' : user.photoUrl;
+      profileImage = NetworkImage(url);
     }
 
     return LayoutBuilder(
@@ -261,7 +267,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: ListView(
-            shrinkWrap: true,
             children: [
               Center(
                 child: Stack(

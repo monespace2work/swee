@@ -242,10 +242,15 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
                                 toolbarTitle: 'Recadrer l\'image',
                                 initAspectRatio: CropAspectRatioPreset.ratio16x9,
                                 lockAspectRatio: true,
+                                hideBottomControls: true,
                               ),
                               IOSUiSettings(
                                 title: 'Recadrer l\'image',
                                 aspectRatioLockEnabled: true,
+                              ),
+                              WebUiSettings(
+                                context: context,
+                                presentStyle: WebPresentStyle.page,
                               ),
                             ],
                           );
@@ -344,7 +349,13 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
             borderRadius: BorderRadius.circular(4),
             child: post.imageUrl!.startsWith('assets/')
                 ? Image.asset(post.imageUrl!, width: 50, height: 50, fit: BoxFit.cover)
-                : Image.network(post.imageUrl!, width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.broken_image)),
+                : Image.network(
+                    post.imageUrl!, 
+                    width: 50, 
+                    height: 50, 
+                    fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) => const Icon(Icons.broken_image),
+                  ),
           )
         else
           Container(

@@ -87,10 +87,15 @@ class _AssociationSettingsScreenState extends State<AssociationSettingsScreen> {
                 toolbarTitle: 'Recadrer le logo',
                 initAspectRatio: CropAspectRatioPreset.square,
                 lockAspectRatio: true,
+                hideBottomControls: true,
               ),
               IOSUiSettings(
                 title: 'Recadrer le logo',
                 aspectRatioLockEnabled: true,
+              ),
+              WebUiSettings(
+                context: context,
+                presentStyle: WebPresentStyle.page,
               ),
             ],
           );

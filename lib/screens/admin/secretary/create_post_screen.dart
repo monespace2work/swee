@@ -97,6 +97,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             IOSUiSettings(
               title: 'Recadrer',
             ),
+            WebUiSettings(
+              context: context,
+              presentStyle: WebPresentStyle.page,
+            ),
           ],
         );
       } catch (e) {
@@ -279,9 +283,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     borderRadius: BorderRadius.circular(8),
                     child: _selectedAsset != null
                         ? Image.asset(_selectedAsset!, height: 150, width: double.infinity, fit: BoxFit.cover)
-                        : (kIsWeb 
-                            ? Image.network(_image!.path, height: 150, width: double.infinity, fit: BoxFit.cover)
-                            : Image.file(File(_image!.path), height: 150, width: double.infinity, fit: BoxFit.cover)),
+                        : (kIsWeb && _image != null
+                            ? FutureBuilder<Uint8List>(
+                                future: _image!.readAsBytes(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) return Image.memory(snapshot.data!, height: 150, width: double.infinity, fit: BoxFit.cover);
+                                  return const SizedBox(height: 150, child: Center(child: CircularProgressIndicator()));
+                                },
+                              )
+                            : (_image != null ? Image.file(File(_image!.path), height: 150, width: double.infinity, fit: BoxFit.cover) : const SizedBox.shrink())),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white, shadows: [Shadow(blurRadius: 2)]),
