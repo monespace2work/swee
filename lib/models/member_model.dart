@@ -79,6 +79,40 @@ class MemberModel {
     };
   }
 
+  MemberModel copyWith({
+    String? id,
+    String? username,
+    String? email,
+    String? nom,
+    String? prenom,
+    String? telephone,
+    String? adresse,
+    DateTime? dateNaissance,
+    String? genre,
+    String? photoUrl,
+    DateTime? dateInscription,
+    UserRole? role,
+    UserStatus? status,
+    Map<String, dynamic>? pendingModifications,
+  }) {
+    return MemberModel(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      nom: nom ?? this.nom,
+      prenom: prenom ?? this.prenom,
+      telephone: telephone ?? this.telephone,
+      adresse: adresse ?? this.adresse,
+      dateNaissance: dateNaissance ?? this.dateNaissance,
+      genre: genre ?? this.genre,
+      photoUrl: photoUrl ?? this.photoUrl,
+      dateInscription: dateInscription ?? this.dateInscription,
+      role: role ?? this.role,
+      status: status ?? this.status,
+      pendingModifications: pendingModifications ?? this.pendingModifications,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import '../../../models/member_model.dart';
 import '../../../services/database_service.dart';
+import '../../../services/storage_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/user_provider.dart';
 import '../../../widgets/user_menu_button.dart';
+import '../../../widgets/member_avatar.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 enum MemberSortOption { alphabetical, chronological, status, gender }
 
@@ -146,10 +151,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
 
   Widget _buildMobileMemberTile(MemberModel member) {
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: member.genre == 'F' ? Colors.pink[100] : Colors.blue[100],
-        child: Text(member.genre, style: TextStyle(color: member.genre == 'F' ? Colors.pink : Colors.blue)),
-      ),
+      leading: MemberAvatar(member: member),
       title: Text('${member.prenom} ${member.nom}'),
       subtitle: Text('Status: ${member.status.name}'),
       trailing: member.pendingModifications != null
@@ -165,11 +167,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
       elevation: 1,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        leading: CircleAvatar(
-          radius: 25,
-          backgroundColor: member.genre == 'F' ? Colors.pink[100] : Colors.blue[100],
-          child: Text(member.genre, style: TextStyle(fontSize: 18, color: member.genre == 'F' ? Colors.pink : Colors.blue)),
-        ),
+        leading: MemberAvatar(member: member, radius: 25),
         title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4.0),
@@ -338,111 +336,199 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
     final emailController = TextEditingController();
     final phoneController = TextEditingController();
     final adresseController = TextEditingController();
-    final photoUrlController = TextEditingController();
+    String photoUrl = '';
+    bool isUploadingPhoto = false;
     String selectedGenre = 'M';
     DateTime selectedBirthDate = DateTime(1990, 1, 1);
     DateTime registrationDate = DateTime.now();
     final isLargeScreen = MediaQuery.of(context).size.width > 900;
+    
+    // On génère l'ID en avance pour l'upload de l'image
+    final newId = FirebaseFirestore.instance.collection('members').doc().id;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Ajouter un Membre'),
-          content: Container(
-            width: isLargeScreen ? 500 : null,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(controller: nomController, decoration: const InputDecoration(labelText: 'Nom *')),
-                  const SizedBox(height: 12),
-                  TextField(controller: prenomController, decoration: const InputDecoration(labelText: 'Prénom *')),
-                  const SizedBox(height: 12),
-                  TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email *')),
-                  const SizedBox(height: 12),
-                  TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Téléphone')),
-                  const SizedBox(height: 12),
-                  TextField(controller: adresseController, decoration: const InputDecoration(labelText: 'Adresse')),
-                  const SizedBox(height: 12),
-                  TextField(controller: photoUrlController, decoration: const InputDecoration(labelText: 'URL Photo Profil')),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: selectedGenre,
-                    decoration: const InputDecoration(labelText: 'Genre *'),
-                    items: const [
-                      DropdownMenuItem(value: 'M', child: Text('Masculin')),
-                      DropdownMenuItem(value: 'F', child: Text('Féminin')),
-                    ],
-                    onChanged: (val) => setState(() => selectedGenre = val!),
+        builder: (context, setState) {
+          Future<void> pickImage() async {
+            if (isUploadingPhoto) return;
+            
+            final picker = ImagePicker();
+            final XFile? pickedFile = await picker.pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 80,
+            );
+            
+            if (pickedFile == null) return;
+
+            // Recadrage
+            CroppedFile? croppedFile;
+            try {
+              croppedFile = await ImageCropper().cropImage(
+                sourcePath: pickedFile.path,
+                aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+                uiSettings: [
+                  AndroidUiSettings(
+                    toolbarTitle: 'Recadrer',
+                    toolbarColor: const Color(0xFF002366),
+                    toolbarWidgetColor: Colors.white,
+                    initAspectRatio: CropAspectRatioPreset.square,
+                    lockAspectRatio: true,
+                    hideBottomControls: true,
                   ),
-                  const SizedBox(height: 12),
-                  ListTile(
-                    title: const Text('Date de naissance'),
-                    subtitle: Text('${selectedBirthDate.day}/${selectedBirthDate.month}/${selectedBirthDate.year}'),
-                    trailing: const Icon(Icons.calendar_today),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedBirthDate,
-                        firstDate: DateTime(1900),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) setState(() => selectedBirthDate = picked);
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('Date d\'inscription'),
-                    subtitle: Text('${registrationDate.day}/${registrationDate.month}/${registrationDate.year}'),
-                    trailing: const Icon(Icons.calendar_today),
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: registrationDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) setState(() => registrationDate = picked);
-                    },
-                  ),
+                  IOSUiSettings(title: 'Recadrer'),
+                  WebUiSettings(context: context, presentStyle: WebPresentStyle.page),
                 ],
+              );
+            } catch (e) {
+              debugPrint("Erreur recadrage: $e");
+            }
+
+            final finalFile = croppedFile != null ? XFile(croppedFile.path) : pickedFile;
+
+            setState(() => isUploadingPhoto = true);
+            try {
+              final url = await StorageService().uploadProfileImage(finalFile, newId);
+              if (url != null) {
+                setState(() {
+                  photoUrl = url;
+                });
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erreur upload : $e')),
+                );
+              }
+            } finally {
+              setState(() => isUploadingPhoto = false);
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('Ajouter un Membre'),
+            content: Container(
+              width: isLargeScreen ? 500 : null,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Stack(
+                        children: [
+                          GestureDetector(
+                            onTap: pickImage,
+                            child: CircleAvatar(
+                              radius: 40,
+                              backgroundColor: selectedGenre == 'F' ? Colors.pink[100] : Colors.blue[100],
+                              backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+                              child: photoUrl.isEmpty && !isUploadingPhoto
+                                  ? Icon(Icons.add_a_photo, size: 30, color: selectedGenre == 'F' ? Colors.pink : Colors.blue)
+                                  : isUploadingPhoto 
+                                      ? const CircularProgressIndicator()
+                                      : null,
+                            ),
+                          ),
+                          if (photoUrl.isNotEmpty)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                                child: const Icon(Icons.check, size: 14, color: Colors.white),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(controller: nomController, decoration: const InputDecoration(labelText: 'Nom *')),
+                    const SizedBox(height: 12),
+                    TextField(controller: prenomController, decoration: const InputDecoration(labelText: 'Prénom *')),
+                    const SizedBox(height: 12),
+                    TextField(controller: emailController, decoration: const InputDecoration(labelText: 'Email *')),
+                    const SizedBox(height: 12),
+                    TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Téléphone')),
+                    const SizedBox(height: 12),
+                    TextField(controller: adresseController, decoration: const InputDecoration(labelText: 'Adresse')),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedGenre,
+                      decoration: const InputDecoration(labelText: 'Genre *'),
+                      items: const [
+                        DropdownMenuItem(value: 'M', child: Text('Masculin')),
+                        DropdownMenuItem(value: 'F', child: Text('Féminin')),
+                      ],
+                      onChanged: (val) => setState(() => selectedGenre = val!),
+                    ),
+                    const SizedBox(height: 12),
+                    ListTile(
+                      title: const Text('Date de naissance'),
+                      subtitle: Text('${selectedBirthDate.day}/${selectedBirthDate.month}/${selectedBirthDate.year}'),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedBirthDate,
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) setState(() => selectedBirthDate = picked);
+                      },
+                    ),
+                    ListTile(
+                      title: const Text('Date d\'inscription'),
+                      subtitle: Text('${registrationDate.day}/${registrationDate.month}/${registrationDate.year}'),
+                      trailing: const Icon(Icons.calendar_today),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: registrationDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) setState(() => registrationDate = picked);
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
-            ElevatedButton(
-              onPressed: () async {
-                if (nomController.text.isEmpty || prenomController.text.isEmpty || emailController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Veuillez remplir les champs obligatoires (*)')),
-                  );
-                  return;
-                }
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+              ElevatedButton(
+                onPressed: isUploadingPhoto ? null : () async {
+                  if (nomController.text.isEmpty || prenomController.text.isEmpty || emailController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Veuillez remplir les champs obligatoires (*)')),
+                    );
+                    return;
+                  }
 
-                final newId = FirebaseFirestore.instance.collection('members').doc().id;
-                final newMember = MemberModel(
-                  id: newId,
-                  username: emailController.text.split('@').first,
-                  email: emailController.text.trim().toLowerCase(),
-                  nom: nomController.text.trim(),
-                  prenom: prenomController.text.trim(),
-                  telephone: phoneController.text.trim(),
-                  adresse: adresseController.text.trim(),
-                  dateNaissance: selectedBirthDate,
-                  genre: selectedGenre,
-                  photoUrl: photoUrlController.text.trim(),
-                  dateInscription: registrationDate,
-                  role: UserRole.membre,
-                  status: UserStatus.enAttenteTresorier,
-                );
-                await _dbService.createMember(newMember);
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('Créer'),
-            ),
-          ],
-        ),
+                  final newMember = MemberModel(
+                    id: newId,
+                    username: emailController.text.split('@').first,
+                    email: emailController.text.trim().toLowerCase(),
+                    nom: nomController.text.trim(),
+                    prenom: prenomController.text.trim(),
+                    telephone: phoneController.text.trim(),
+                    adresse: adresseController.text.trim(),
+                    dateNaissance: selectedBirthDate,
+                    genre: selectedGenre,
+                    photoUrl: photoUrl,
+                    dateInscription: registrationDate,
+                    role: UserRole.membre,
+                    status: UserStatus.enAttenteTresorier,
+                  );
+                  await _dbService.createMember(newMember);
+                  if (context.mounted) Navigator.pop(context);
+                },
+                child: const Text('Créer'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -518,7 +604,8 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
   late TextEditingController _prenomController;
   late TextEditingController _phoneController;
   late TextEditingController _adresseController;
-  late TextEditingController _photoUrlController;
+  late String _photoUrl;
+  bool _isUploadingPhoto = false;
   late UserStatus _selectedStatus;
   late UserRole _selectedRole;
   late String _selectedGenre;
@@ -532,7 +619,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
     _prenomController = TextEditingController(text: widget.member.prenom);
     _phoneController = TextEditingController(text: widget.member.telephone);
     _adresseController = TextEditingController(text: widget.member.adresse);
-    _photoUrlController = TextEditingController(text: widget.member.photoUrl);
+    _photoUrl = widget.member.photoUrl;
     _selectedStatus = widget.member.status;
     _selectedRole = widget.member.role;
     _selectedGenre = widget.member.genre;
@@ -546,8 +633,67 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
     _prenomController.dispose();
     _phoneController.dispose();
     _adresseController.dispose();
-    _photoUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    if (_isUploadingPhoto) return;
+    
+    final picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+    
+    if (pickedFile == null) return;
+
+    // Recadrage
+    CroppedFile? croppedFile;
+    try {
+      croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recadrer',
+            toolbarColor: const Color(0xFF002366),
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+            hideBottomControls: true,
+          ),
+          IOSUiSettings(title: 'Recadrer'),
+          WebUiSettings(context: context, presentStyle: WebPresentStyle.page),
+        ],
+      );
+    } catch (e) {
+      debugPrint("Erreur recadrage: $e");
+    }
+
+    final finalFile = croppedFile != null ? XFile(croppedFile.path) : pickedFile;
+
+    setState(() => _isUploadingPhoto = true);
+    try {
+      final url = await StorageService().uploadProfileImage(finalFile, widget.member.id);
+      if (url != null) {
+        setState(() {
+          _photoUrl = url;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Nouvelle photo prête à être enregistrée.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur upload : $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   @override
@@ -560,8 +706,57 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
       padding: EdgeInsets.all(isLargeScreen ? 32 : 20),
       children: [
         if (!isLargeScreen) ...[
-          Text('Détails du Membre', style: Theme.of(context).textTheme.headlineSmall),
+          Row(
+            children: [
+              Stack(
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: _isUploadingPhoto 
+                        ? const SizedBox(width: 60, height: 60, child: Center(child: CircularProgressIndicator()))
+                        : MemberAvatar(member: widget.member.copyWith(photoUrl: _photoUrl), radius: 30),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(color: AppTheme.gold, shape: BoxShape.circle),
+                      child: const Icon(Icons.camera_alt, size: 12, color: AppTheme.darkBlue),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text('Détails du Membre', style: Theme.of(context).textTheme.headlineSmall),
+              ),
+            ],
+          ),
           const Divider(),
+        ] else ...[
+          Center(
+            child: Stack(
+              children: [
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: _isUploadingPhoto 
+                      ? const SizedBox(width: 100, height: 100, child: Center(child: CircularProgressIndicator()))
+                      : MemberAvatar(member: widget.member.copyWith(photoUrl: _photoUrl), radius: 50),
+                ),
+                Positioned(
+                  bottom: 5,
+                  right: 5,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: AppTheme.gold, shape: BoxShape.circle),
+                    child: const Icon(Icons.camera_alt, size: 16, color: AppTheme.darkBlue),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
         if (widget.member.pendingModifications != null) _buildValidationCard(isLargeScreen),
         const SizedBox(height: 20),
@@ -857,7 +1052,6 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
           _buildField(_prenomController, 'Prénom', isDark),
           _buildField(_phoneController, 'Téléphone', isDark),
           _buildField(_adresseController, 'Adresse', isDark),
-          _buildField(_photoUrlController, 'URL Photo Profil', isDark),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: _selectedGenre,
@@ -955,13 +1149,13 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: () async {
+            onPressed: _isUploadingPhoto ? null : () async {
               await widget.dbService.updateMember(widget.member.id, {
                 'nom': _nomController.text,
                 'prenom': _prenomController.text,
                 'telephone': _phoneController.text,
                 'adresse': _adresseController.text,
-                'photoUrl': _photoUrlController.text,
+                'photoUrl': _photoUrl,
                 'genre': _selectedGenre,
                 'dateNaissance': Timestamp.fromDate(_selectedBirthDate),
                 'dateInscription': Timestamp.fromDate(_selectedRegistrationDate),

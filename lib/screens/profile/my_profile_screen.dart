@@ -278,10 +278,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                         backgroundColor: isDark ? AppTheme.gold : AppTheme.darkBlue,
                         backgroundImage: profileImage,
                         child: (profileImage == null)
-                          ? Icon(
-                              Icons.person, 
-                              size: 60, 
-                              color: isDark ? AppTheme.deepNavy : Colors.white
+                          ? Text(
+                              ((user.prenom.isNotEmpty ? user.prenom[0] : '') +
+                               (user.nom.isNotEmpty ? user.nom[0] : '')).toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppTheme.deepNavy : Colors.white,
+                              ),
                             )
                           : null,
                       ),

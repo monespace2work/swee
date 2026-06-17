@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
 import '../screens/profile/my_profile_screen.dart';
 import '../screens/auth/auth_wrapper.dart';
+import '../theme/app_theme.dart';
 
 class UserMenuButton extends StatelessWidget {
   const UserMenuButton({super.key});
@@ -12,10 +14,45 @@ class UserMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.isDarkMode;
+    final user = Provider.of<UserProvider>(context).userProfile;
+
+    Widget icon;
+    if (user != null) {
+      final initials = ((user.prenom.isNotEmpty ? user.prenom[0] : '') +
+                        (user.nom.isNotEmpty ? user.nom[0] : '')).toUpperCase();
+      icon = Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isDark ? AppTheme.gold : Colors.white,
+            width: 2,
+          ),
+        ),
+        child: CircleAvatar(
+          radius: 14,
+          backgroundColor: isDark ? AppTheme.gold : AppTheme.darkBlue,
+          backgroundImage: user.photoUrl.isNotEmpty ? NetworkImage(user.photoUrl) : null,
+          child: user.photoUrl.isEmpty
+              ? Text(
+                  initials,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppTheme.deepNavy : Colors.white,
+                  ),
+                )
+              : null,
+        ),
+      );
+    } else {
+      icon = const Icon(Icons.account_circle_outlined);
+    }
 
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.account_circle_outlined),
+      icon: icon,
       tooltip: 'Menu utilisateur',
+      offset: const Offset(0, 45),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (value) async {
         if (value == 'profile') {
           showDialog(
@@ -25,7 +62,7 @@ class UserMenuButton extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 500),
                 child: Scaffold(
-                  resizeToAvoidBottomInset: true, // Crucial pour éviter les débordements avec le clavier
+                  resizeToAvoidBottomInset: true,
                   appBar: AppBar(
                     title: const Text('Mon Profil'),
                     leading: IconButton(
@@ -38,8 +75,12 @@ class UserMenuButton extends StatelessWidget {
               ),
             ),
           );
-        } else if (value == 'theme') {
-          themeProvider.toggleTheme(!isDark);
+        } else if (value == 'theme_light') {
+          themeProvider.setThemeMode(ThemeMode.light);
+        } else if (value == 'theme_dark') {
+          themeProvider.setThemeMode(ThemeMode.dark);
+        } else if (value == 'theme_system') {
+          themeProvider.setThemeMode(ThemeMode.system);
         } else if (value == 'logout') {
           await AuthService().signOut();
           if (context.mounted) {
@@ -50,36 +91,98 @@ class UserMenuButton extends StatelessWidget {
           }
         }
       },
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'profile',
-          child: ListTile(
-            leading: Icon(Icons.person_outline),
-            title: Text('Profil'),
-            contentPadding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
+      itemBuilder: (context) {
+        final initials = user != null 
+            ? ((user.prenom.isNotEmpty ? user.prenom[0] : '') + (user.nom.isNotEmpty ? user.nom[0] : '')).toUpperCase()
+            : '';
+        
+        return [
+          // Header avec grande photo
+          PopupMenuItem(
+            enabled: false,
+            height: 120,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? AppTheme.gold : AppTheme.darkBlue,
+                        width: 3,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 35,
+                      backgroundColor: isDark ? AppTheme.gold : AppTheme.darkBlue,
+                      backgroundImage: (user != null && user.photoUrl.isNotEmpty) ? NetworkImage(user.photoUrl) : null,
+                      child: (user != null && user.photoUrl.isEmpty)
+                          ? Text(
+                              initials,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppTheme.deepNavy : Colors.white,
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    user != null ? '${user.prenom} ${user.nom}' : 'Utilisateur',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: 'theme',
-          child: ListTile(
-            leading: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
-            title: Text(isDark ? 'Mode Clair' : 'Mode Sombre'),
-            contentPadding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: 'profile',
+            child: ListTile(
+              leading: Icon(Icons.person_outline),
+              title: Text('Profil'),
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
           ),
-        ),
-        const PopupMenuDivider(),
-        const PopupMenuItem(
-          value: 'logout',
-          child: ListTile(
-            leading: Icon(Icons.logout, color: Colors.red),
-            title: Text('Déconnexion', style: TextStyle(color: Colors.red)),
-            contentPadding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
+          const PopupMenuItem(
+            value: 'theme_system',
+            child: ListTile(
+              leading: Icon(Icons.brightness_auto),
+              title: Text('Thème Système'),
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
           ),
-        ),
-      ],
+          PopupMenuItem(
+            value: isDark ? 'theme_light' : 'theme_dark',
+            child: ListTile(
+              leading: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+              title: Text(isDark ? 'Passer au Clair' : 'Passer au Sombre'),
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem(
+            value: 'logout',
+            child: ListTile(
+              leading: Icon(Icons.logout, color: Colors.red),
+              title: Text('Déconnexion', style: TextStyle(color: Colors.red)),
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ];
+      },
     );
   }
 }

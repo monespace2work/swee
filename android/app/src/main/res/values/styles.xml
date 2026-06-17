@@ -3,13 +3,15 @@
     <!-- Thème de lancement -->
     <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@color/primary_dark_blue</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
-
     <!-- Thème normal de l'app -->
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">@color/surface_light</item>
     </style>
-
     <!-- Thème SPECIFIQUE pour le recadrage (AppCompat requis) -->
     <style name="AppCropperTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">#002366</item>
