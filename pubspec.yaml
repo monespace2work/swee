@@ -2,7 +2,7 @@ name: swee
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.3+1
 
 environment:
   sdk: ^3.9.0
@@ -21,6 +21,7 @@ dependencies:
   image_cropper: ^8.0.2
   shared_preferences: ^2.5.1
   url_launcher: ^6.3.1
+  flutter_local_notifications: 16.3.2
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +55,11 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: false
+  web:
+    generate: true
+    image_path: "assets/images/logo.png"
+    background_color: "#FFFFFF"
+    theme_color: "#002366"
   image_path: "assets/images/logo.png"
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/images/logo.png"

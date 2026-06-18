@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../models/alert_model.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 
 class AlertListenerWrapper extends StatefulWidget {
   final Widget child;
@@ -16,6 +17,7 @@ class AlertListenerWrapper extends StatefulWidget {
 class _AlertListenerWrapperState extends State<AlertListenerWrapper> {
   StreamSubscription? _alertSubscription;
   bool _isShowingAlert = false;
+  final Set<String> _notifiedAlertIds = {};
 
   @override
   void initState() {
@@ -39,8 +41,23 @@ class _AlertListenerWrapperState extends State<AlertListenerWrapper> {
     _alertSubscription = DatabaseService()
         .getPendingAlertsForUser(user.id, user.role)
         .listen((alerts) {
-      if (alerts.isNotEmpty && !_isShowingAlert) {
-        _showAlertDialog(alerts.first);
+      if (alerts.isNotEmpty) {
+        final alert = alerts.first;
+        
+        // Afficher la notification si pas encore fait pour cette alerte
+        if (!_notifiedAlertIds.contains(alert.id)) {
+          NotificationService().showAlertNotification(
+            id: alert.id.hashCode,
+            title: alert.title,
+            body: alert.details,
+          );
+          _notifiedAlertIds.add(alert.id);
+        }
+
+        // Afficher le dialogue si pas déjà en cours
+        if (!_isShowingAlert) {
+          _showAlertDialog(alert);
+        }
       }
     });
   }

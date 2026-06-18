@@ -11,6 +11,7 @@ import 'package:swee/theme/app_theme.dart';
 import 'providers/theme_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:swee/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,7 @@ void main() async {
   // Initialisaon en parallèle pour gagner du temps au lancement
   await Future.wait([
     initializeDateFormatting('fr_FR', null),
+    NotificationService().init(),
     Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     ).then((_) {

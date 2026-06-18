@@ -25,7 +25,7 @@ class AppTheme {
         backgroundColor: darkBlue,
         foregroundColor: accentGold,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         titleTextStyle: TextStyle(
           color: accentGold,
           fontSize: 20,
@@ -103,7 +103,7 @@ class AppTheme {
         backgroundColor: deepNavy,
         foregroundColor: gold,
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         titleTextStyle: TextStyle(
           color: gold,
           fontSize: 20,
