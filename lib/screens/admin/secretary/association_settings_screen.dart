@@ -23,6 +23,14 @@ class _AssociationSettingsScreenState extends State<AssociationSettingsScreen> {
   
   final _nameController = TextEditingController();
   final _sloganController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _websiteController = TextEditingController();
+  final _youtubeController = TextEditingController();
+  final _facebookController = TextEditingController();
+  final _whatsappController = TextEditingController();
+  final _tiktokController = TextEditingController();
   
   XFile? _newLogoFile;
   String? _currentLogoUrl;
@@ -42,6 +50,14 @@ class _AssociationSettingsScreenState extends State<AssociationSettingsScreen> {
       final doc = await _dbService.getAssociationSettings().first;
       _nameController.text = doc['name'] ?? 'Swee';
       _sloganController.text = doc['slogan'] ?? '';
+      _emailController.text = doc['email'] ?? '';
+      _phoneController.text = doc['phone'] ?? '';
+      _addressController.text = doc['address'] ?? '';
+      _websiteController.text = doc['website'] ?? '';
+      _youtubeController.text = doc['youtube'] ?? '';
+      _facebookController.text = doc['facebook'] ?? '';
+      _whatsappController.text = doc['whatsapp'] ?? '';
+      _tiktokController.text = doc['tiktok'] ?? '';
       _currentLogoUrl = doc['logoUrl'];
     } catch (e) {
       if (kDebugMode) print('Error loading settings: $e');
@@ -59,6 +75,14 @@ class _AssociationSettingsScreenState extends State<AssociationSettingsScreen> {
   void dispose() {
     _nameController.dispose();
     _sloganController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _websiteController.dispose();
+    _youtubeController.dispose();
+    _facebookController.dispose();
+    _whatsappController.dispose();
+    _tiktokController.dispose();
     super.dispose();
   }
 
@@ -155,6 +179,14 @@ class _AssociationSettingsScreenState extends State<AssociationSettingsScreen> {
       await _dbService.updateAssociationSettings({
         'name': _nameController.text.trim(),
         'slogan': _sloganController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+        'website': _websiteController.text.trim(),
+        'youtube': _youtubeController.text.trim(),
+        'facebook': _facebookController.text.trim(),
+        'whatsapp': _whatsappController.text.trim(),
+        'tiktok': _tiktokController.text.trim(),
         'logoUrl': finalLogoUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -287,6 +319,96 @@ class _AssociationSettingsScreenState extends State<AssociationSettingsScreen> {
                     prefixIcon: Icon(Icons.format_quote),
                   ),
                   maxLines: 2,
+                ),
+                const SizedBox(height: 30),
+                const Divider(),
+                const SizedBox(height: 20),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Coordonnées', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.gold)),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email de contact',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'N° de téléphone',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.phone),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _addressController,
+                  decoration: const InputDecoration(
+                    labelText: 'Adresse du siège',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.location_on),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _websiteController,
+                  keyboardType: TextInputType.url,
+                  decoration: const InputDecoration(
+                    labelText: 'Site Web',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.language),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Divider(),
+                const SizedBox(height: 20),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Réseaux Sociaux', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.gold)),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _facebookController,
+                  decoration: const InputDecoration(
+                    labelText: 'Facebook (URL)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.facebook),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _whatsappController,
+                  decoration: const InputDecoration(
+                    labelText: 'WhatsApp (Lien ou N°)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.chat),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _youtubeController,
+                  decoration: const InputDecoration(
+                    labelText: 'YouTube (URL)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.play_circle_fill),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _tiktokController,
+                  decoration: const InputDecoration(
+                    labelText: 'TikTok (URL)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.music_note),
+                  ),
                 ),
                 const SizedBox(height: 40),
                 _isSaving 

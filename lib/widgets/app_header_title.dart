@@ -4,6 +4,7 @@ import '../providers/user_provider.dart';
 import '../services/database_service.dart';
 import '../theme/app_theme.dart';
 import '../models/member_model.dart';
+import '../screens/association/association_details_screen.dart';
 
 class AppHeaderTitle extends StatelessWidget {
   final bool showRole;
@@ -22,53 +23,62 @@ class AppHeaderTitle extends StatelessWidget {
         final assocName = settings['name'] ?? 'Swee';
         final logoUrl = settings['logoUrl'];
 
-        return Row(
-          children: [
-            // Miniature Logo
-            Container(
-              width: 35,
-              height: 35,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
+        return InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AssociationDetailsScreen()),
+            );
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Miniature Logo
+              Container(
+                width: 35,
+                height: 35,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+                child: ClipOval(
+                  child: logoUrl != null
+                      ? Image.network(logoUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildDefaultIcon())
+                      : _buildDefaultIcon(),
+                ),
               ),
-              child: ClipOval(
-                child: logoUrl != null
-                    ? Image.network(logoUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildDefaultIcon())
-                    : _buildDefaultIcon(),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Name and Username
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    assocName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
+              const SizedBox(width: 10),
+              // Name and Username
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      assocName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  Text(
-                    _getSubtitle(user),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withOpacity(0.8),
+                    Text(
+                      _getSubtitle(user),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
