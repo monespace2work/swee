@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:swee/widgets/alert_listener_wrapper.dart';
 import '../../providers/user_provider.dart';
 import '../../models/member_model.dart';
 import '../../models/alert_model.dart';
@@ -44,76 +43,72 @@ class _NavigationWrapperState extends State<NavigationWrapper> {
       const BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Mon Compte'),
     ];
 
-    // Ajustement de l'index si nécessaire (ex: si on était sur Idées et qu'on change de rôle)
     if (_selectedIndex >= screens.length) {
       _selectedIndex = screens.length - 1;
     }
 
-    return AlertListenerWrapper(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const AppHeaderTitle(),
-          actions: [
-            StreamBuilder<List<AlertModel>>(
-              stream: DatabaseService().getPendingAlertsForUser(userProfile!.id, userProfile.role),
-              builder: (context, snapshot) {
-                final count = snapshot.data?.length ?? 0;
-                return Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications),
-                      tooltip: 'Mes Alertes',
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const UserAlertsScreen()),
-                      ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const AppHeaderTitle(),
+        actions: [
+          StreamBuilder<List<AlertModel>>(
+            stream: DatabaseService().getPendingAlertsForUser(userProfile.id, userProfile.role),
+            builder: (context, snapshot) {
+              final count = snapshot.data?.length ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications),
+                    tooltip: 'Mes Alertes',
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const UserAlertsScreen()),
                     ),
-                    if (count > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                          child: Text(
-                            '$count',
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                  ],
-                );
-              },
-            ),
-            if (isAdmin)
-              IconButton(
-                icon: const Icon(Icons.admin_panel_settings),
-                tooltip: 'Dashboard Admin',
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
-                ),
+                    ),
+                ],
+              );
+            },
+          ),
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings),
+              tooltip: 'Dashboard Admin',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
               ),
-            const UserMenuButton(),
-          ],
-        ),
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: screens,
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          currentIndex: _selectedIndex,
-          onTap: (index) => setState(() => _selectedIndex = index),
-          items: items,
-        ),
+            ),
+          const UserMenuButton(),
+        ],
+      ),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: screens,
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
+        onTap: (index) => setState(() => _selectedIndex = index),
+        items: items,
       ),
     );
   }
-
 }

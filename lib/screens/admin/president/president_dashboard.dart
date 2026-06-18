@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../home/navigation_wrapper.dart';
 import '../../../services/database_service.dart';
 import '../../../models/member_model.dart';
+import '../../../models/alert_model.dart';
 import '../../../services/auth_service.dart';
 import '../../auth/auth_wrapper.dart';
 import '../../../widgets/app_header_title.dart';
@@ -231,8 +232,18 @@ class PresidentDashboard extends StatelessWidget {
     );
   }
 
-  void _validateMember(String id) {
-    DatabaseService().updateMember(id, {'status': 'actif'});
+  void _validateMember(String id) async {
+    final dbService = DatabaseService();
+    await dbService.updateMember(id, {'status': 'actif'});
+
+    // AA to Member
+    await dbService.sendAutomaticAlert(
+      title: 'Bienvenue !',
+      details: 'Votre inscription a été validée par le Président. Vous êtes maintenant membre actif.',
+      initiatorId: dbService.currentUser?.uid ?? 'system',
+      targetType: AlertTarget.manual,
+      targetUserIds: [id],
+    );
   }
 
   void _verifyPresidentPassword(BuildContext context, Widget screen) {

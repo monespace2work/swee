@@ -6,6 +6,7 @@ import '../../models/member_model.dart';
 import 'login_screen.dart';
 import '../home/navigation_wrapper.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../../widgets/alert_listener_wrapper.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -40,25 +41,29 @@ class AuthWrapper extends StatelessWidget {
       return const LoginScreen();
     }
 
+    // On prépare l'écran de destination selon le statut et le rôle
+    Widget screen;
+
     // 3. Gestion des comptes en attente de validation
     if (userProvider.userProfile!.status == UserStatus.enAttenteTresorier ||
         userProvider.userProfile!.status == UserStatus.enAttentePresident) {
-      return const PendingValidationScreen();
+      screen = const PendingValidationScreen();
     }
-
     // 4. Gestion des comptes bloqués
-    if (userProvider.userProfile!.status == UserStatus.suspendu ||
+    else if (userProvider.userProfile!.status == UserStatus.suspendu ||
         userProvider.userProfile!.status == UserStatus.desactive) {
-      return const AccountBlockedScreen();
+      screen = const AccountBlockedScreen();
     }
-
     // 5. Redirection finale selon le rôle
-    if (userProvider.userProfile!.role == UserRole.membre) {
-      return const NavigationWrapper();
+    else if (userProvider.userProfile!.role == UserRole.membre) {
+      screen = const NavigationWrapper();
     } else {
       // Pour tous les autres rôles (secretaire, tresorier, president)
-      return const AdminDashboardScreen();
+      screen = const AdminDashboardScreen();
     }
+
+    // On enveloppe l'écran choisi avec le listener d'alertes global
+    return AlertListenerWrapper(child: screen);
   }
 }
 

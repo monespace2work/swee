@@ -197,9 +197,38 @@ class DatabaseService {
     return _db.collection('settings').doc('permissions').snapshots().map((doc) => doc.data() ?? {});
   }
 
+  Future<List<String>> getUserIdsByRole(UserRole role) async {
+    final query = await _db
+        .collection('members')
+        .where('role', isEqualTo: role.toString().split('.').last)
+        .get();
+    return query.docs.map((doc) => doc.id).toList();
+  }
+
   // ALERTS
   Future<void> addAlert(AlertModel alert) async {
     await _db.collection('alerts').add(alert.toMap());
+  }
+
+  Future<void> sendAutomaticAlert({
+    required String title,
+    required String details,
+    required String initiatorId,
+    AlertTarget targetType = AlertTarget.manual,
+    List<String> targetUserIds = const [],
+  }) async {
+    final alert = AlertModel(
+      id: '',
+      title: title,
+      details: details,
+      initiatorId: initiatorId,
+      createdAt: DateTime.now(),
+      startDate: DateTime.now(),
+      isActive: true,
+      targetType: targetType,
+      targetUserIds: targetUserIds,
+    );
+    await addAlert(alert);
   }
 
   Future<void> updateAlert(String id, Map<String, dynamic> data) async {

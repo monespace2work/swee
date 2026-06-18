@@ -8,7 +8,6 @@ import 'package:swee/screens/admin/secretary/secretary_dashboard.dart';
 import 'package:swee/screens/admin/treasurer/treasurer_dashboard.dart';
 import 'package:swee/screens/admin/president/president_dashboard.dart';
 import 'package:swee/screens/admin/advisor/advisor_dashboard.dart';
-import 'package:swee/widgets/alert_listener_wrapper.dart';
 import 'package:swee/screens/auth/auth_wrapper.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
@@ -80,7 +79,7 @@ class AdminDashboardScreen extends StatelessWidget {
         );
     }
 
-    return AlertListenerWrapper(child: dashboard);
+    return dashboard;
   }
 
   Widget _buildLoadingScreen(BuildContext context) {

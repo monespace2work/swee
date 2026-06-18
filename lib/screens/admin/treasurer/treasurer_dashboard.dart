@@ -4,6 +4,7 @@ import 'package:swee/providers/user_provider.dart';
 import '../../home/navigation_wrapper.dart';
 import '../../../services/database_service.dart';
 import '../../../models/member_model.dart';
+import '../../../models/alert_model.dart';
 import 'record_payment_screen.dart';
 import 'payment_management_screen.dart';
 import '../alerts/manage_alerts_screen.dart';
@@ -294,7 +295,18 @@ class TreasurerDashboard extends StatelessWidget {
     );
   }
 
-  void _validateMember(String id) {
-    DatabaseService().updateMember(id, {'status': 'enAttentePresident'});
+  void _validateMember(String id) async {
+    final dbService = DatabaseService();
+    await dbService.updateMember(id, {'status': 'enAttentePresident'});
+    
+    // AA to President
+    final presidentIds = await dbService.getUserIdsByRole(UserRole.president);
+    await dbService.sendAutomaticAlert(
+      title: 'Validation membre (Niveau 2)',
+      details: 'Le trésorier a validé une inscription. En attente de votre validation finale.',
+      initiatorId: dbService.currentUser?.uid ?? 'system',
+      targetType: AlertTarget.manual,
+      targetUserIds: presidentIds,
+    );
   }
 }

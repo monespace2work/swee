@@ -5,6 +5,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'dart:io';
 import '../../../models/post_model.dart';
 import '../../../models/idea_model.dart';
+import '../../../models/alert_model.dart';
 import '../../../services/database_service.dart';
 import '../../../services/storage_service.dart';
 import 'package:provider/provider.dart';
@@ -179,6 +180,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     // Si ça vient d'une idée, on met à jour le statut de l'idée en 'publiee'
     if (widget.fromIdea != null) {
       await dbService.updateIdea(widget.fromIdea!.id, {'status': IdeaStatus.publiee.name});
+      
+      // AA to Member
+      await dbService.sendAutomaticAlert(
+        title: 'Suggestion publiée !',
+        details: 'Votre suggestion "${widget.fromIdea!.title}" a été publiée dans le fil d\'actualité.',
+        initiatorId: dbService.currentUser?.uid ?? 'system',
+        targetType: AlertTarget.manual,
+        targetUserIds: [widget.fromIdea!.memberId],
+      );
     }
     
     setState(() => _isUploading = false);

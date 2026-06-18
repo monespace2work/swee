@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import '../../../models/member_model.dart';
+import '../../../models/alert_model.dart';
 import '../../../services/database_service.dart';
 import '../../../services/storage_service.dart';
 import '../../../theme/app_theme.dart';
@@ -522,6 +523,17 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                     status: UserStatus.enAttenteTresorier,
                   );
                   await _dbService.createMember(newMember);
+                  
+                  // AA to Treasurer
+                  final treasurerIds = await _dbService.getUserIdsByRole(UserRole.tresorier);
+                  await _dbService.sendAutomaticAlert(
+                    title: 'Nouveau membre enregistré',
+                    details: 'Le secrétaire a enregistré ${newMember.prenom} ${newMember.nom}. En attente de votre validation.',
+                    initiatorId: _dbService.currentUser?.uid ?? 'system',
+                    targetType: AlertTarget.manual,
+                    targetUserIds: treasurerIds,
+                  );
+
                   if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text('Créer'),
@@ -1150,6 +1162,9 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
           height: 50,
           child: ElevatedButton(
             onPressed: _isUploadingPhoto ? null : () async {
+              final oldStatus = widget.member.status;
+              final newStatus = _selectedStatus;
+
               await widget.dbService.updateMember(widget.member.id, {
                 'nom': _nomController.text,
                 'prenom': _prenomController.text,
@@ -1162,6 +1177,21 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
                 'status': _selectedStatus.name,
                 'role': _selectedRole.name,
               });
+
+              // AA to Member if status changed by President
+              if (oldStatus != newStatus) {
+                final currentUser = Provider.of<UserProvider>(context, listen: false).userProfile;
+                if (currentUser?.role == UserRole.president) {
+                  await widget.dbService.sendAutomaticAlert(
+                    title: 'Statut de membre mis à jour',
+                    details: 'Votre statut a été modifié en "${newStatus.name}" par le Président.',
+                    initiatorId: currentUser?.id ?? 'system',
+                    targetType: AlertTarget.manual,
+                    targetUserIds: [widget.member.id],
+                  );
+                }
+              }
+
               if (mounted) Navigator.pop(context);
             },
             child: const Text('Enregistrer les modifications'),

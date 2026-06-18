@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../models/member_model.dart';
 import '../models/alert_model.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
@@ -18,13 +19,39 @@ class _AlertListenerWrapperState extends State<AlertListenerWrapper> {
   StreamSubscription? _alertSubscription;
   bool _isShowingAlert = false;
   final Set<String> _notifiedAlertIds = {};
+  String? _currentUserId;
+  UserRole? _currentRole;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setupAlertListener();
-    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkUserAndSetupListener();
+  }
+
+  void _checkUserAndSetupListener() {
+    final userProvider = Provider.of<UserProvider>(context);
+    final user = userProvider.userProfile;
+
+    if (user == null) {
+      _alertSubscription?.cancel();
+      _alertSubscription = null;
+      _currentUserId = null;
+      _currentRole = null;
+      return;
+    }
+
+    // Si l'utilisateur ou son rôle a changé, on réinitialise l'écouteur
+    if (user.id != _currentUserId || user.role != _currentRole) {
+      _alertSubscription?.cancel();
+      _currentUserId = user.id;
+      _currentRole = user.role;
+      _setupAlertListener(user.id, user.role);
+    }
   }
 
   @override
@@ -33,30 +60,26 @@ class _AlertListenerWrapperState extends State<AlertListenerWrapper> {
     super.dispose();
   }
 
-  void _setupAlertListener() {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final user = userProvider.userProfile;
-    if (user == null) return;
-
+  void _setupAlertListener(String userId, UserRole role) {
     _alertSubscription = DatabaseService()
-        .getPendingAlertsForUser(user.id, user.role)
+        .getPendingAlertsForUser(userId, role)
         .listen((alerts) {
       if (alerts.isNotEmpty) {
-        final alert = alerts.first;
-        
-        // Afficher la notification si pas encore fait pour cette alerte
-        if (!_notifiedAlertIds.contains(alert.id)) {
-          NotificationService().showAlertNotification(
-            id: alert.id.hashCode,
-            title: alert.title,
-            body: alert.details,
-          );
-          _notifiedAlertIds.add(alert.id);
+        // Notifier pour TOUTES les nouvelles alertes non vues
+        for (final alert in alerts) {
+          if (!_notifiedAlertIds.contains(alert.id)) {
+            NotificationService().showAlertNotification(
+              id: alert.id.hashCode,
+              title: alert.title,
+              body: alert.details,
+            );
+            _notifiedAlertIds.add(alert.id);
+          }
         }
 
-        // Afficher le dialogue si pas déjà en cours
+        // Afficher le dialogue pour la plus ancienne alerte non traitée si pas déjà en cours
         if (!_isShowingAlert) {
-          _showAlertDialog(alert);
+          _showAlertDialog(alerts.first);
         }
       }
     });

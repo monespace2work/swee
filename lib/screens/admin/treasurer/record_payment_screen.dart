@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../models/member_model.dart';
 import '../../../models/payment_model.dart';
+import '../../../models/alert_model.dart';
 import '../../../services/database_service.dart';
 
 class RecordPaymentScreen extends StatefulWidget {
@@ -127,6 +128,16 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
         description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
       );
       await _dbService.addPayment(payment);
+
+      // AA to Member
+      await _dbService.sendAutomaticAlert(
+        title: 'Paiement enregistré',
+        details: 'Type: ${_selectedType.name.toUpperCase()}\nMontant: ${payment.montant} FCFA\nDate: ${DateFormat('dd/MM/yyyy').format(payment.date)}\nMoyen: ${payment.modeReglement}\nObs: ${payment.description ?? "-"}',
+        initiatorId: _dbService.currentUser?.uid ?? 'system',
+        targetType: AlertTarget.manual,
+        targetUserIds: [payment.memberId],
+      );
+
       if (mounted) Navigator.pop(context);
     }
   }
