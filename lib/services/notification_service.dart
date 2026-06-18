@@ -22,8 +22,13 @@ class NotificationService {
       iOS: initializationSettingsIOS,
     );
 
+    // En version 22.0.1, initialize utilise des paramètres nommés.
+    // Le paramètre principal s'appelle 'settings'.
     await _notificationsPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        // Gérer le clic sur la notification ici si nécessaire
+      },
     );
   }
 
@@ -47,11 +52,12 @@ class NotificationService {
       iOS: DarwinNotificationDetails(),
     );
 
+    // En version 22.0.1, show utilise des paramètres nommés.
     await _notificationsPlugin.show(
-      id,
-      title,
-      body,
-      platformChannelSpecifics,
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: platformChannelSpecifics,
     );
   }
 }
