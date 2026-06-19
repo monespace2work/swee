@@ -85,6 +85,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       try {
         croppedFile = await ImageCropper().cropImage(
           sourcePath: image.path,
+          aspectRatioPresets: [
+            CropAspectRatioPreset.original,
+            CropAspectRatioPreset.square,
+            CropAspectRatioPreset.ratio3x2,
+            CropAspectRatioPreset.ratio4x3,
+            CropAspectRatioPreset.ratio16x9,
+          ],
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: 'Recadrer',
@@ -108,8 +115,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 CropAspectRatioPreset.ratio3x2,
                 CropAspectRatioPreset.ratio4x3,
                 CropAspectRatioPreset.ratio16x9,
-              ],
-            ),
+              ]            ),
             WebUiSettings(
               context: context,
               presentStyle: WebPresentStyle.page,
