@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/member_model.dart';
 import '../services/auth_service.dart';
 import '../services/database_service.dart';
+import '../services/notification_service.dart';
 
 class UserProvider with ChangeNotifier {
   MemberModel? _userProfile;
@@ -29,6 +30,9 @@ class UserProvider with ChangeNotifier {
       if (user != null) {
         _isLoading = true;
         notifyListeners();
+
+        // Synchroniser le token de notification
+        NotificationService().syncToken(user.uid);
 
         _profileSubscription = _authService.getMemberProfileStream(user.uid).listen(
           (profile) {

@@ -236,17 +236,28 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
                         try {
                           croppedFile = await ImageCropper().cropImage(
                             sourcePath: img.path,
-                            aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9),
                             uiSettings: [
                               AndroidUiSettings(
                                 toolbarTitle: 'Recadrer l\'image',
-                                initAspectRatio: CropAspectRatioPreset.ratio16x9,
-                                lockAspectRatio: true,
-                                hideBottomControls: true,
+                                initAspectRatio: CropAspectRatioPreset.original,
+                                lockAspectRatio: false,
+                                aspectRatioPresets: [
+                                  CropAspectRatioPreset.original,
+                                  CropAspectRatioPreset.square,
+                                  CropAspectRatioPreset.ratio3x2,
+                                  CropAspectRatioPreset.ratio4x3,
+                                  CropAspectRatioPreset.ratio16x9,
+                                ],
                               ),
                               IOSUiSettings(
                                 title: 'Recadrer l\'image',
-                                aspectRatioLockEnabled: true,
+                                aspectRatioPresets: [
+                                  CropAspectRatioPreset.original,
+                                  CropAspectRatioPreset.square,
+                                  CropAspectRatioPreset.ratio3x2,
+                                  CropAspectRatioPreset.ratio4x3,
+                                  CropAspectRatioPreset.ratio16x9,
+                                ],
                               ),
                               WebUiSettings(
                                 context: context,
