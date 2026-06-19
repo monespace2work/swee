@@ -43,6 +43,37 @@ class PostCard extends StatelessWidget {
   final PostModel post;
   const PostCard({super.key, required this.post});
 
+  void _showZoomedImage(BuildContext context, String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 5.0,
+              child: Hero(
+                tag: imageUrl,
+                child: imageUrl.startsWith('assets/')
+                    ? Image.asset(imageUrl, fit: BoxFit.contain)
+                    : Image.network(imageUrl, fit: BoxFit.contain),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -128,32 +159,37 @@ class PostCard extends StatelessWidget {
           if (headerBadge != null) headerBadge,
           
           if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
-            Builder(builder: (context) {
-              final isAsset = post.imageUrl!.startsWith('assets/');
-              if (isAsset) {
-                return Image.asset(
-                  post.imageUrl!,
-                  width: double.infinity,
-                  height: 250,
-                  fit: BoxFit.cover,
-                );
-              }
-              return Image.network(
-                post.imageUrl!,
-                width: double.infinity,
-                height: 250,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    height: 250,
-                    color: isDark ? Colors.white10 : Colors.grey[100],
-                    child: const Center(child: CircularProgressIndicator()),
+            GestureDetector(
+              onTap: () => _showZoomedImage(context, post.imageUrl!),
+              child: Hero(
+                tag: post.imageUrl!,
+                child: Builder(builder: (context) {
+                  final isAsset = post.imageUrl!.startsWith('assets/');
+                  if (isAsset) {
+                    return Image.asset(
+                      post.imageUrl!,
+                      width: double.infinity,
+                      fit: BoxFit.fitWidth,
+                    );
+                  }
+                  return Image.network(
+                    post.imageUrl!,
+                    width: double.infinity,
+                    fit: BoxFit.fitWidth,
+                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: double.infinity,
+                        height: 200,
+                        color: isDark ? Colors.white10 : Colors.grey[100],
+                        child: const Center(child: CircularProgressIndicator()),
+                      );
+                    },
                   );
-                },
-              );
-            }),
+                }),
+              ),
+            ),
           
           Padding(
             padding: const EdgeInsets.all(16.0),

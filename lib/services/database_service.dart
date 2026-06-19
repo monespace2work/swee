@@ -24,6 +24,12 @@ class DatabaseService {
     await _db.collection('members').doc(id).update(data);
   }
 
+  Future<void> updateFcmToken(String userId, String? token) async {
+    await _db.collection('members').doc(userId).update({
+      'fcmToken': token,
+    });
+  }
+
   Future<MemberModel?> getMemberByEmail(String email) async {
     final searchEmail = email.trim().toLowerCase();
     try {
