@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../home/navigation_wrapper.dart';
 import '../../../services/database_service.dart';
 import '../../../models/member_model.dart';
@@ -13,17 +14,34 @@ import '../secretary/idea_moderation_screen.dart';
 import '../secretary/post_management_screen.dart';
 import '../alerts/manage_alerts_screen.dart';
 import 'role_management_screen.dart';
+import 'strategic_insights_screen.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/post_model.dart';
 import '../../../models/idea_model.dart';
 
-class PresidentDashboard extends StatelessWidget {
+class PresidentDashboard extends StatefulWidget {
   const PresidentDashboard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final dbService = DatabaseService();
+  State<PresidentDashboard> createState() => _PresidentDashboardState();
+}
 
+class _PresidentDashboardState extends State<PresidentDashboard> {
+  late Stream<List<MemberModel>> _membersStream;
+  late Stream<List<IdeaModel>> _ideasStream;
+  late Stream<List<PostModel>> _postsStream;
+  final DatabaseService _dbService = DatabaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    _membersStream = _dbService.getMembers();
+    _ideasStream = _dbService.getAllIdeas();
+    _postsStream = _dbService.getPosts();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const AppHeaderTitle(showRole: true),
@@ -64,7 +82,7 @@ class PresidentDashboard extends StatelessWidget {
               childAspectRatio: MediaQuery.of(context).size.width > 900 ? 4 : 2.5,
               children: [
                 StreamBuilder<List<MemberModel>>(
-                  stream: dbService.getMembers(),
+                  stream: _membersStream,
                   builder: (context, snapshot) {
                     final members = snapshot.data ?? [];
                     final active = members.where((m) => m.status == UserStatus.actif).length;
@@ -78,7 +96,7 @@ class PresidentDashboard extends StatelessWidget {
                   }
                 ),
                 StreamBuilder<List<IdeaModel>>(
-                  stream: dbService.getAllIdeas(),
+                  stream: _ideasStream,
                   builder: (context, snapshot) {
                     final ideas = snapshot.data ?? [];
                     final pending = ideas.where((i) => i.status == IdeaStatus.enAttenteTraitement).length;
@@ -92,7 +110,7 @@ class PresidentDashboard extends StatelessWidget {
                   }
                 ),
                 StreamBuilder<List<PostModel>>(
-                  stream: dbService.getPosts(),
+                  stream: _postsStream,
                   builder: (context, snapshot) {
                     final posts = snapshot.data ?? [];
                     final active = posts.where((p) => p.isActive).length;
@@ -119,6 +137,12 @@ class PresidentDashboard extends StatelessWidget {
                 ),
                 _buildMenuCard(
                   context, 
+                  'Pilotage Stratégique', 
+                  Icons.analytics, 
+                  const StrategicInsightsScreen()
+                ),
+                _buildMenuCard(
+                  context, 
                   'Rôles & Accès', 
                   Icons.admin_panel_settings, 
                   null, // Custom onTap handle
@@ -131,13 +155,14 @@ class PresidentDashboard extends StatelessWidget {
               child: Text('Validations de Compte (Niveau 3)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
             StreamBuilder<List<MemberModel>>(
-              stream: dbService.getMembers(),
+              stream: _membersStream,
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Padding(
+                if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) return const Padding(
                   padding: EdgeInsets.all(20.0),
                   child: Center(child: CircularProgressIndicator()),
                 );
-                final pending = snapshot.data!.where((m) => m.status == UserStatus.enAttentePresident).toList();
+                
+                final pending = (snapshot.data ?? []).where((m) => m.status == UserStatus.enAttentePresident).toList();
                 
                 if (pending.isEmpty) return const Padding(
                   padding: EdgeInsets.all(20.0),
@@ -233,14 +258,16 @@ class PresidentDashboard extends StatelessWidget {
   }
 
   void _validateMember(String id) async {
-    final dbService = DatabaseService();
-    await dbService.updateMember(id, {'status': 'actif'});
+    await _dbService.updateMember(id, {
+      'status': 'actif',
+      'dateActivation': FieldValue.serverTimestamp(),
+    });
 
     // AA to Member
-    await dbService.sendAutomaticAlert(
+    await _dbService.sendAutomaticAlert(
       title: 'Bienvenue !',
       details: 'Votre inscription a été validée par le Président. Vous êtes maintenant membre actif.',
-      initiatorId: dbService.currentUser?.uid ?? 'system',
+      initiatorId: _dbService.currentUser?.uid ?? 'system',
       targetType: AlertTarget.manual,
       targetUserIds: [id],
     );
@@ -342,6 +369,16 @@ class PresidentDashboard extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const PostManagementScreen()));
+              },
+            ),
+            _buildActionTile(
+              context,
+              icon: Icons.analytics,
+              title: 'Pilotage Stratégique',
+              subtitle: 'Statistiques et aide à la décision',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const StrategicInsightsScreen()));
               },
             ),
             _buildActionTile(

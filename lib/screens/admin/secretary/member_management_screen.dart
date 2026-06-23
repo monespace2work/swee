@@ -532,6 +532,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                     initiatorId: _dbService.currentUser?.uid ?? 'system',
                     targetType: AlertTarget.manual,
                     targetUserIds: treasurerIds,
+                    memberId: newId,
                   );
 
                   if (context.mounted) Navigator.pop(context);
@@ -1165,7 +1166,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
               final oldStatus = widget.member.status;
               final newStatus = _selectedStatus;
 
-              await widget.dbService.updateMember(widget.member.id, {
+              final Map<String, dynamic> updateData = {
                 'nom': _nomController.text,
                 'prenom': _prenomController.text,
                 'telephone': _phoneController.text,
@@ -1176,7 +1177,14 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
                 'dateInscription': Timestamp.fromDate(_selectedRegistrationDate),
                 'status': _selectedStatus.name,
                 'role': _selectedRole.name,
-              });
+              };
+
+              // Si on active le compte manuellement
+              if (oldStatus != UserStatus.actif && newStatus == UserStatus.actif) {
+                updateData['dateActivation'] = FieldValue.serverTimestamp();
+              }
+
+              await widget.dbService.updateMember(widget.member.id, updateData);
 
               // AA to Member if status changed by President
               if (oldStatus != newStatus) {

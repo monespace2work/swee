@@ -13,6 +13,7 @@ class AlertModel {
   final Map<String, DateTime> viewedBy;
   final Map<String, DateTime> remindMeLater;
   final Map<String, DateTime> dismissedBy;
+  final String? memberId; // Pour les alertes de validation d'inscription
 
   AlertModel({
     required this.id,
@@ -27,6 +28,7 @@ class AlertModel {
     this.viewedBy = const {},
     this.remindMeLater = const {},
     this.dismissedBy = const {},
+    this.memberId,
   });
 
   factory AlertModel.fromMap(Map<String, dynamic> data, String documentId) {
@@ -52,6 +54,7 @@ class AlertModel {
       dismissedBy: (data['dismissedBy'] as Map<String, dynamic>?)?.map(
         (key, value) => MapEntry(key, (value as dynamic).toDate() as DateTime),
       ) ?? {},
+      memberId: data['memberId'],
     );
   }
 
@@ -68,6 +71,7 @@ class AlertModel {
       'viewedBy': viewedBy,
       'remindMeLater': remindMeLater,
       'dismissedBy': dismissedBy,
+      'memberId': memberId,
     };
   }
 }

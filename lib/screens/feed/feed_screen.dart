@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/database_service.dart';
 import '../../models/post_model.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/zoomable_image_viewer.dart';
 import 'package:intl/intl.dart';
 
 class FeedScreen extends StatelessWidget {
@@ -130,28 +131,46 @@ class PostCard extends StatelessWidget {
           if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
             Builder(builder: (context) {
               final isAsset = post.imageUrl!.startsWith('assets/');
-              if (isAsset) {
-                return Image.asset(
-                  post.imageUrl!,
-                  width: double.infinity,
-                  height: 250,
-                  fit: BoxFit.cover,
-                );
-              }
-              return Image.network(
-                post.imageUrl!,
-                width: double.infinity,
-                height: 250,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    height: 250,
-                    color: isDark ? Colors.white10 : Colors.grey[100],
-                    child: const Center(child: CircularProgressIndicator()),
-                  );
-                },
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ZoomableImageViewer(
+                      imageUrl: post.imageUrl!,
+                      isAsset: isAsset,
+                    ),
+                  ),
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 480),
+                    child: Hero(
+                      tag: post.imageUrl!,
+                      child: AspectRatio(
+                        aspectRatio: post.aspectRatio,
+                        child: isAsset
+                            ? Image.asset(
+                                post.imageUrl!,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.network(
+                                post.imageUrl!,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: isDark ? Colors.white10 : Colors.grey[100],
+                                    child: const Center(child: CircularProgressIndicator()),
+                                  );
+                                },
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
               );
             }),
           

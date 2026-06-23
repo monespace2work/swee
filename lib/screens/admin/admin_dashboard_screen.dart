@@ -9,9 +9,27 @@ import 'package:swee/screens/admin/treasurer/treasurer_dashboard.dart';
 import 'package:swee/screens/admin/president/president_dashboard.dart';
 import 'package:swee/screens/admin/advisor/advisor_dashboard.dart';
 import 'package:swee/screens/auth/auth_wrapper.dart';
+import 'package:swee/widgets/app_tutorial.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  bool _tutorialChecked = false;
+
+  void _checkTutorial(MemberModel? user) {
+    if (_tutorialChecked) return;
+    if (user != null && !user.hasSeenTutorial) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppTutorial.show(context, user.id);
+      });
+      _tutorialChecked = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +40,8 @@ class AdminDashboardScreen extends StatelessWidget {
     if (userProvider.isLoading) {
       return _buildLoadingScreen(context);
     }
+
+    _checkTutorial(user);
 
     // Gestion du cas où le profil est introuvable
     if (user == null) {

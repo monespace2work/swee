@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../models/member_model.dart';
@@ -61,6 +62,9 @@ class _AlertListenerWrapperState extends State<AlertListenerWrapper> {
   }
 
   void _setupAlertListener(String userId, UserRole role) {
+    final userProfile = Provider.of<UserProvider>(context, listen: false).userProfile;
+    final dateActivation = userProfile?.dateActivation;
+
     _alertSubscription = DatabaseService()
         .getPendingAlertsForUser(userId, role)
         .listen((alerts) {
@@ -77,9 +81,23 @@ class _AlertListenerWrapperState extends State<AlertListenerWrapper> {
           }
         }
 
+        // On cherche la première alerte éligible pour l'affichage pop-up
+        // Elle doit avoir été créée APRÈS l'activation du compte du membre (si la date est connue)
+        AlertModel? alertToShow;
+        try {
+          alertToShow = alerts.firstWhere((a) {
+            if (dateActivation == null) return true;
+            // On laisse une petite marge de 5 secondes pour les alertes de bienvenue
+            return a.createdAt.isAfter(dateActivation.subtract(const Duration(seconds: 5)));
+          });
+        } catch (_) {
+          // Aucune alerte ne remplit les critères de date pour le pop-up
+          alertToShow = null;
+        }
+
         // Afficher le dialogue pour la plus ancienne alerte non traitée si pas déjà en cours
-        if (!_isShowingAlert) {
-          _showAlertDialog(alerts.first);
+        if (!_isShowingAlert && alertToShow != null) {
+          _showAlertDialog(alertToShow);
         }
       }
     });
@@ -127,6 +145,81 @@ class _AlertListenerWrapperState extends State<AlertListenerWrapper> {
             
             const SizedBox(height: 24),
             
+            // Section Actions de Validation (si applicable)
+            if (alert.memberId != null) ...[
+              ElevatedButton.icon(
+                icon: const Icon(Icons.check_circle),
+                label: const Text('VALIDER MAINTENANT', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () async {
+                  final userProvider = Provider.of<UserProvider>(context, listen: false);
+                  final role = userProvider.userProfile?.role;
+                  final userId = userProvider.userProfile?.id;
+                  
+                  if (role == null || userId == null) return;
+
+                  final db = DatabaseService();
+                  // Déterminer le nouveau statut selon le rôle
+                  String? newStatus;
+                  Map<String, dynamic> updateData = {};
+                  
+                  if (role == UserRole.tresorier) {
+                    newStatus = 'enAttentePresident';
+                    updateData = {'status': newStatus};
+                  } else if (role == UserRole.president) {
+                    newStatus = 'actif';
+                    updateData = {
+                      'status': newStatus,
+                      'dateActivation': FieldValue.serverTimestamp(),
+                    };
+                  }
+
+                  if (newStatus != null) {
+                    await db.updateMember(alert.memberId!, updateData);
+                    
+                    // Si c'est le trésorier, on envoie l'alerte au président
+                    if (role == UserRole.tresorier) {
+                      final presidentIds = await db.getUserIdsByRole(UserRole.president);
+                      await db.sendAutomaticAlert(
+                        title: 'Validation membre (Niveau 2)',
+                        details: 'Le trésorier a validé une inscription. En attente de votre validation finale.',
+                        initiatorId: userId,
+                        targetType: AlertTarget.manual,
+                        targetUserIds: presidentIds,
+                        memberId: alert.memberId,
+                      );
+                    } 
+                    // Si c'est le président, on informe le membre
+                    else if (role == UserRole.president) {
+                      await db.sendAutomaticAlert(
+                        title: 'Bienvenue !',
+                        details: 'Votre inscription a été validée par le Président. Vous êtes maintenant membre actif.',
+                        initiatorId: userId,
+                        targetType: AlertTarget.manual,
+                        targetUserIds: [alert.memberId!],
+                      );
+                    }
+                  }
+
+                  // Marquer l'alerte comme vue
+                  await db.markAlertAsViewed(alert.id, userId);
+                  
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    setState(() => _isShowingAlert = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Validation effectuée avec succès !'), backgroundColor: Colors.green),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // Bouton de validation principal
             ElevatedButton(
               style: ElevatedButton.styleFrom(

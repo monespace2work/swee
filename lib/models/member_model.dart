@@ -16,6 +16,8 @@ class MemberModel {
   final UserRole role;
   final UserStatus status;
   final Map<String, dynamic>? pendingModifications;
+  final bool hasSeenTutorial;
+  final DateTime? dateActivation;
 
   MemberModel({
     required this.id,
@@ -32,6 +34,8 @@ class MemberModel {
     required this.role,
     required this.status,
     this.pendingModifications,
+    this.hasSeenTutorial = false,
+    this.dateActivation,
   });
 
   factory MemberModel.fromMap(Map<String, dynamic> data, String documentId) {
@@ -58,6 +62,8 @@ class MemberModel {
       pendingModifications: data['pendingModifications'] != null 
           ? Map<String, dynamic>.from(data['pendingModifications']) 
           : null,
+      hasSeenTutorial: data['hasSeenTutorial'] ?? false,
+      dateActivation: data['dateActivation'] != null ? (data['dateActivation'] as dynamic).toDate() : null,
     );
   }
 
@@ -76,6 +82,8 @@ class MemberModel {
       'role': role.toString().split('.').last,
       'status': status.toString().split('.').last,
       'pendingModifications': pendingModifications,
+      'hasSeenTutorial': hasSeenTutorial,
+      'dateActivation': dateActivation,
     };
   }
 
@@ -94,6 +102,8 @@ class MemberModel {
     UserRole? role,
     UserStatus? status,
     Map<String, dynamic>? pendingModifications,
+    bool? hasSeenTutorial,
+    DateTime? dateActivation,
   }) {
     return MemberModel(
       id: id ?? this.id,
@@ -110,6 +120,8 @@ class MemberModel {
       role: role ?? this.role,
       status: status ?? this.status,
       pendingModifications: pendingModifications ?? this.pendingModifications,
+      hasSeenTutorial: hasSeenTutorial ?? this.hasSeenTutorial,
+      dateActivation: dateActivation ?? this.dateActivation,
     );
   }
 

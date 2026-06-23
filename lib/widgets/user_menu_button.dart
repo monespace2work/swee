@@ -4,7 +4,9 @@ import '../providers/theme_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
 import '../screens/profile/my_profile_screen.dart';
+import '../screens/association/members_list_screen.dart';
 import '../screens/auth/auth_wrapper.dart';
+import 'app_tutorial.dart';
 import '../theme/app_theme.dart';
 
 class UserMenuButton extends StatelessWidget {
@@ -75,6 +77,15 @@ class UserMenuButton extends StatelessWidget {
               ),
             ),
           );
+        } else if (value == 'members') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MembersListScreen()),
+          );
+        } else if (value == 'tutorial') {
+          if (user != null) {
+            AppTutorial.show(context, user.id, isManualLaunch: true);
+          }
         } else if (value == 'theme_light') {
           themeProvider.setThemeMode(ThemeMode.light);
         } else if (value == 'theme_dark') {
@@ -154,6 +165,24 @@ class UserMenuButton extends StatelessWidget {
             ),
           ),
           const PopupMenuItem(
+            value: 'members',
+            child: ListTile(
+              leading: Icon(Icons.people_outline),
+              title: Text('Annuaire des Membres'),
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'tutorial',
+            child: ListTile(
+              leading: Icon(Icons.help_outline),
+              title: Text('Tutoriel'),
+              contentPadding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          const PopupMenuItem(
             value: 'theme_system',
             child: ListTile(
               leading: Icon(Icons.brightness_auto),
@@ -172,6 +201,19 @@ class UserMenuButton extends StatelessWidget {
             ),
           ),
           const PopupMenuDivider(),
+          const PopupMenuItem(
+            enabled: false,
+            child: Center(
+              child: Text(
+                'Version 1.0.7',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
           const PopupMenuItem(
             value: 'logout',
             child: ListTile(
