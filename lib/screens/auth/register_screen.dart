@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
 import '../../services/database_service.dart';
 import '../../models/member_model.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/user_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -97,11 +99,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       
+      // Mode inscription pour éviter que l'app ne tente de charger le dashboard
+      // car Firebase Auth connecte l'utilisateur automatiquement après signUp
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      userProvider.setIsRegistering(true);
+      
       try {
         final email = _emailController.text.trim();
         final username = _usernameController.text.trim().toLowerCase();
         
-        // Vérifier si le nom d'utilisateur existe déjà (et n'est pas celui déjà attribué)
+        // Vérifier si le nom d'utilisateur existe déjà
         if (username != _preRegisteredMember?.username) {
           final query = await FirebaseFirestore.instance
               .collection('members')
@@ -113,7 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           }
         }
 
-        // Création d'un objet membre mis à jour à partir des saisies (si on veut permettre la modif au dernier moment)
+        // Création d'un objet membre mis à jour
         final updatedMember = MemberModel(
           id: _preRegisteredMember?.id ?? '',
           username: username,
@@ -145,14 +152,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           existingMember: updatedMember,
         );
 
-        // Déconnexion immédiate pour revenir à l'état "déconnecté" proprement
+        // Déconnexion immédiate
         await _authService.signOut();
+        userProvider.setIsRegistering(false);
 
         if (mounted) {
           setState(() => _isLoading = false);
           _showSuccessDialog();
         }
       } catch (e) {
+        userProvider.setIsRegistering(false);
         if (mounted) {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(

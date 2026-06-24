@@ -14,6 +14,7 @@ import '../../widgets/app_header_title.dart';
 import '../../widgets/user_menu_button.dart';
 import '../auth/auth_wrapper.dart';
 import '../../widgets/app_tutorial.dart';
+import '../../theme/app_theme.dart';
 
 class NavigationWrapper extends StatefulWidget {
   const NavigationWrapper({super.key});
@@ -123,6 +124,38 @@ class _NavigationWrapperState extends State<NavigationWrapper> {
         index: _selectedIndex,
         children: screens,
       ),
+      floatingActionButton: (userProfile.role == UserRole.tresorier || userProfile.role == UserRole.president)
+          ? StreamBuilder<List<MemberModel>>(
+              stream: DatabaseService().getMembersByStatus(
+                userProfile.role == UserRole.tresorier 
+                    ? UserStatus.enAttenteTresorier 
+                    : UserStatus.enAttentePresident
+              ),
+              builder: (context, snapshot) {
+                final pending = snapshot.data ?? [];
+                if (pending.isEmpty) return const SizedBox.shrink();
+
+                return FloatingActionButton.extended(
+                  heroTag: 'validation_quick_action',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AdminDashboardScreen()),
+                    );
+                  },
+                  backgroundColor: AppTheme.gold,
+                  foregroundColor: AppTheme.darkBlue,
+                  icon: const Icon(Icons.how_to_reg),
+                  label: Text(
+                    pending.length == 1 
+                        ? 'ACTIVER ${pending.first.prenom.toUpperCase()}' 
+                        : 'VALIDATIONS (${pending.length})',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                );
+              },
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,

@@ -9,6 +9,7 @@ class UserProvider with ChangeNotifier {
   MemberModel? _userProfile;
   Map<String, dynamic> _allPermissions = {};
   bool _isLoading = true; 
+  bool _isRegistering = false;
   final AuthService _authService = AuthService();
   final DatabaseService _dbService = DatabaseService();
   StreamSubscription? _profileSubscription;
@@ -16,6 +17,14 @@ class UserProvider with ChangeNotifier {
 
   MemberModel? get userProfile => _userProfile;
   bool get isLoading => _isLoading;
+
+  void setIsRegistering(bool value) {
+    _isRegistering = value;
+    if (!value) {
+      // Re-déclencher une vérification si on sort du mode inscription
+      _authService.signOut(); 
+    }
+  }
 
   UserProvider() {
     // Écouter les permissions globales
@@ -25,6 +34,11 @@ class UserProvider with ChangeNotifier {
     });
 
     _authService.user.listen((user) {
+      if (_isRegistering) {
+        debugPrint("UserProvider: Ignorer auth change pendant l'inscription");
+        return;
+      }
+
       _profileSubscription?.cancel();
       
       if (user != null) {

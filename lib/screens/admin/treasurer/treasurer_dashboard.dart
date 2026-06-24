@@ -309,6 +309,27 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
   }
 
   void _validateMember(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer la validation'),
+        content: const Text('Voulez-vous valider cette inscription (Niveau 2) et transmettre le dossier au Président ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ANNULER'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.gold, foregroundColor: AppTheme.darkBlue),
+            child: const Text('CONFIRMER'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     await _dbService.updateMember(id, {'status': 'enAttentePresident'});
     
     // AA to President

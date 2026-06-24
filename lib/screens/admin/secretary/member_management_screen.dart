@@ -944,6 +944,33 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
   }
 
   void _handleValidation(bool approve) async {
+    // Demander confirmation
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(approve ? 'Confirmer l\'approbation' : 'Confirmer le rejet'),
+        content: Text(approve 
+          ? 'Voulez-vous valider et appliquer ces modifications au profil du membre ?' 
+          : 'Voulez-vous rejeter ces modifications ? Elles seront définitivement supprimées.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ANNULER'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: approve ? Colors.green : Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(approve ? 'APPROUVER' : 'REJETER'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     // Capturer les données nécessaires avant toute opération asynchrone
     final String memberId = widget.member.id;
     final Map<String, dynamic>? pendingMods = widget.member.pendingModifications;
@@ -1165,6 +1192,28 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
             onPressed: _isUploadingPhoto ? null : () async {
               final oldStatus = widget.member.status;
               final newStatus = _selectedStatus;
+
+              // Demander confirmation si le statut change vers Actif ou si c'est une modification de rôle
+              if (oldStatus != newStatus || _selectedRole != widget.member.role) {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Confirmer les modifications'),
+                    content: const Text('Voulez-vous enregistrer ces changements administratifs ? Certaines actions comme l\'activation sont sensibles.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('ANNULER'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('CONFIRMER'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+              }
 
               final Map<String, dynamic> updateData = {
                 'nom': _nomController.text,

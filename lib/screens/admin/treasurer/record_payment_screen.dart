@@ -118,12 +118,49 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
 
   void _savePayment() async {
     if (_selectedMember != null && _amountController.text.isNotEmpty) {
+      final double? montant = double.tryParse(_amountController.text);
+      if (montant == null) return;
+
+      // Confirmation avant enregistrement
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Confirmer le paiement'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Membre : ${_selectedMember!.prenom} ${_selectedMember!.nom}'),
+              Text('Montant : ${NumberFormat.currency(locale: 'fr_FR', symbol: 'FCFA', decimalDigits: 0).format(montant)}'),
+              Text('Type : ${_selectedType.name.toUpperCase()}'),
+              Text('Date : ${DateFormat('dd/MM/yyyy').format(_selectedDate)}'),
+              if (_modeController.text.isNotEmpty) Text('Mode : ${_modeController.text}'),
+              const SizedBox(height: 16),
+              const Text('Voulez-vous enregistrer cette cotisation ? Cette action informera le membre par notification.', 
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.orange)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('ANNULER'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('CONFIRMER'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
       final payment = PaymentModel(
         id: '',
         memberId: _selectedMember!.id,
         date: _selectedDate,
         type: _selectedType,
-        montant: double.parse(_amountController.text),
+        montant: montant,
         modeReglement: _modeController.text,
         description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
       );

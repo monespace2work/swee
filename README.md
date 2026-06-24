@@ -9,6 +9,17 @@ Swee permet de digitaliser la vie de votre association en centralisant les infor
 
 ---
 
+## ✨ Nouveautés Récentes
+
+L'application a été enrichie de fonctionnalités améliorant la réactivité du bureau et la sécurité des opérations :
+
+*   **⚡ Bouton de Validation Rapide :** Un bouton d'action flottant (FAB) intelligent apparaît désormais sur l'accueil du Trésorier et du Président dès qu'une validation est en attente, permettant d'agir en un clic.
+*   **🛡️ Sécurisation des Actions :** Introduction de confirmations obligatoires pour toutes les opérations irréversibles (activation de compte, modification de rôle, enregistrement de paiement).
+*   **🔔 Système d'Alertes Amélioré :** Notifications locales et pop-ups automatiques pour informer le bureau des nouvelles inscriptions en temps réel.
+*   **📖 Inscription Fluidifiée :** Le processus de création de compte membre a été stabilisé pour garantir une transition sans erreur vers la page de connexion.
+
+---
+
 ## 📘 Guide des Rôles et Fonctionnalités
 
 L'application Swee repose sur une hiérarchie de rôles permettant une gestion structurée et sécurisée de l'association. Chaque utilisateur possède des privilèges spécifiques adaptés à sa fonction.

@@ -67,6 +67,15 @@ class DatabaseService {
         snapshot.docs.map((doc) => MemberModel.fromMap(doc.data(), doc.id)).toList());
   }
 
+  Stream<List<MemberModel>> getMembersByStatus(UserStatus status) {
+    return _db
+        .collection('members')
+        .where('status', isEqualTo: status.toString().split('.').last)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => MemberModel.fromMap(doc.data(), doc.id)).toList());
+  }
+
   // PAYMENTS
   Future<void> addPayment(PaymentModel payment) async {
     await _db.collection('payments').add(payment.toMap());

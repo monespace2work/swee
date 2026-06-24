@@ -7,6 +7,8 @@ import '../models/member_model.dart';
 import '../models/alert_model.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../screens/admin/admin_dashboard_screen.dart';
+import '../theme/app_theme.dart';
 
 class AlertListenerWrapper extends StatefulWidget {
   final Widget child;
@@ -161,6 +163,30 @@ class _AlertListenerWrapperState extends State<AlertListenerWrapper> {
                   final userId = userProvider.userProfile?.id;
                   
                   if (role == null || userId == null) return;
+
+                  // Demander confirmation avant de valider
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Confirmer la validation'),
+                      content: Text(role == UserRole.tresorier 
+                        ? 'Voulez-vous valider ce paiement et transmettre le dossier au Président ?' 
+                        : 'Voulez-vous confirmer l\'activation définitive de ce compte membre ?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('ANNULER'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                          child: const Text('CONFIRMER'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed != true) return;
 
                   final db = DatabaseService();
                   // Déterminer le nouveau statut selon le rôle

@@ -258,6 +258,27 @@ class _PresidentDashboardState extends State<PresidentDashboard> {
   }
 
   void _validateMember(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer l\'activation'),
+        content: const Text('Voulez-vous confirmer l\'activation définitive de ce compte membre ? Cette action est irréversible.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ANNULER'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.gold, foregroundColor: AppTheme.darkBlue),
+            child: const Text('ACTIVER DÉFINITIVEMENT'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     await _dbService.updateMember(id, {
       'status': 'actif',
       'dateActivation': FieldValue.serverTimestamp(),
