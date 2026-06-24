@@ -21,7 +21,8 @@ dependencies:
   image_cropper: ^8.0.2
   shared_preferences: ^2.5.1
   url_launcher: ^6.3.1
-  flutter_local_notifications: ^22.0.1
+  flutter_local_notifications: ^20.1.0
+  firebase_messaging: ^16.4.0
 
 dev_dependencies:
   flutter_test:
