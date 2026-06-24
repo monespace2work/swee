@@ -36,15 +36,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialisation sécurisée de Firebase
+  // Initialisation parallèle pour gagner du temps au démarrage
   try {
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-    }
+    await Future.wait([
+      if (Firebase.apps.isEmpty)
+        Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+      initializeDateFormatting('fr_FR', null),
+    ]);
     
-    // Configuration Firestore
+    // Configuration Firestore (non-bloquante pour l'UI)
     try {
       FirebaseFirestore.instance.settings = const Settings(
         persistenceEnabled: true,
@@ -57,12 +57,10 @@ void main() async {
     // Handler arrière-plan
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } catch (e) {
-    debugPrint("Firebase init error: $e");
+    debugPrint("Initialization error: $e");
   }
-
-  await initializeDateFormatting('fr_FR', null);
   
-  // Initialisation des notifications
+  // Initialisation des notifications (en arrière-plan)
   NotificationService().init().catchError((e) => debugPrint("Notification init error: $e"));
 
   runApp(
