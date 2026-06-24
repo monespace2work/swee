@@ -13,6 +13,7 @@ import '../../services/auth_service.dart';
 import '../../widgets/app_header_title.dart';
 import '../../widgets/user_menu_button.dart';
 import '../auth/auth_wrapper.dart';
+import '../../widgets/app_tutorial.dart';
 
 class NavigationWrapper extends StatefulWidget {
   const NavigationWrapper({super.key});
@@ -23,6 +24,25 @@ class NavigationWrapper extends StatefulWidget {
 
 class _NavigationWrapperState extends State<NavigationWrapper> {
   int _selectedIndex = 0;
+  bool _tutorialChecked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _checkTutorial();
+  }
+
+  void _checkTutorial() {
+    if (_tutorialChecked) return;
+    
+    final userProfile = Provider.of<UserProvider>(context, listen: false).userProfile;
+    if (userProfile != null && !userProfile.hasSeenTutorial && userProfile.status == UserStatus.actif) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppTutorial.show(context, userProfile.id);
+      });
+      _tutorialChecked = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

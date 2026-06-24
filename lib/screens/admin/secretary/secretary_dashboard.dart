@@ -14,18 +14,35 @@ import 'package:swee/models/idea_model.dart';
 import 'package:swee/widgets/app_header_title.dart';
 import 'package:swee/widgets/user_menu_button.dart';
 
-class SecretaryDashboard extends StatelessWidget {
+class SecretaryDashboard extends StatefulWidget {
   const SecretaryDashboard({super.key});
 
   @override
+  State<SecretaryDashboard> createState() => _SecretaryDashboardState();
+}
+
+class _SecretaryDashboardState extends State<SecretaryDashboard> {
+  late Stream<List<MemberModel>> _membersStream;
+  late Stream<List<IdeaModel>> _ideasStream;
+  late Stream<List<PostModel>> _postsStream;
+  final DatabaseService _dbService = DatabaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    _membersStream = _dbService.getMembers();
+    _ideasStream = _dbService.getAllIdeas();
+    _postsStream = _dbService.getPosts();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final dbService = DatabaseService();
     final userProvider = Provider.of<UserProvider>(context);
 
     final List<Widget> menuCards = [
       if (userProvider.hasPermission('can_manage_members'))
         StreamBuilder<List<MemberModel>>(
-          stream: dbService.getMembers(),
+          stream: _membersStream,
           builder: (context, snapshot) {
             final members = snapshot.data ?? [];
             final active = members.where((m) => m.status == UserStatus.actif).length;
@@ -41,7 +58,7 @@ class SecretaryDashboard extends StatelessWidget {
         ),
       if (userProvider.hasPermission('can_moderate_ideas'))
         StreamBuilder<List<IdeaModel>>(
-          stream: dbService.getAllIdeas(),
+          stream: _ideasStream,
           builder: (context, snapshot) {
             final ideas = snapshot.data ?? [];
             final pending = ideas.where((i) => i.status == IdeaStatus.enAttenteTraitement).length;
@@ -57,7 +74,7 @@ class SecretaryDashboard extends StatelessWidget {
         ),
       if (userProvider.hasPermission('can_manage_posts'))
         StreamBuilder<List<PostModel>>(
-          stream: dbService.getPosts(),
+          stream: _postsStream,
           builder: (context, snapshot) {
             final posts = snapshot.data ?? [];
             final active = posts.where((p) => p.isActive).length;
@@ -141,14 +158,14 @@ class SecretaryDashboard extends StatelessWidget {
                   child: Text('Validations de Profil en Attente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 StreamBuilder<List<MemberModel>>(
-                  stream: dbService.getMembers(),
+                  stream: _membersStream,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const Padding(
+                    if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) return const Padding(
                       padding: EdgeInsets.all(20.0),
                       child: Center(child: CircularProgressIndicator()),
                     );
                     
-                    final pending = snapshot.data!.where((m) => m.pendingModifications != null).toList();
+                    final pending = (snapshot.data ?? []).where((m) => m.pendingModifications != null).toList();
                     
                     if (pending.isEmpty) return const Padding(
                       padding: EdgeInsets.all(20.0),
@@ -171,7 +188,7 @@ class SecretaryDashboard extends StatelessWidget {
                             title: Text('${member.prenom} ${member.nom}'),
                             subtitle: const Text('Demande de modification de profil'),
                             trailing: const Icon(Icons.chevron_right, color: Colors.orange),
-                            onTap: () => _showMemberDetailsDirectly(context, member, dbService),
+                            onTap: () => _showMemberDetailsDirectly(context, member, _dbService),
                           ),
                         );
                       },
@@ -284,14 +301,5 @@ class SecretaryDashboard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class PlaceholderScreen extends StatelessWidget {
-  final String title;
-  const PlaceholderScreen({super.key, required this.title});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text(title)), body: const Center(child: Text('En cours de développement')));
   }
 }

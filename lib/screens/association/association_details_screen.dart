@@ -145,6 +145,17 @@ class AssociationDetailsScreen extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 40),
+                const Divider(),
+                const SizedBox(height: 16),
+                const Text(
+                  'Swee App v1.0.7',
+                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+                ),
+                const Text(
+                  '© 2024 - Plateforme de Gestion d\'Association',
+                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                ),
+                const SizedBox(height: 40),
               ],
             ),
           );

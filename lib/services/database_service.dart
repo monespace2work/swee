@@ -222,6 +222,7 @@ class DatabaseService {
     required String initiatorId,
     AlertTarget targetType = AlertTarget.manual,
     List<String> targetUserIds = const [],
+    String? memberId,
   }) async {
     final alert = AlertModel(
       id: '',
@@ -233,6 +234,7 @@ class DatabaseService {
       isActive: true,
       targetType: targetType,
       targetUserIds: targetUserIds,
+      memberId: memberId,
     );
     await addAlert(alert);
   }
@@ -341,6 +343,12 @@ class DatabaseService {
     await _db.collection('alerts').doc(alertId).update({
       'viewedBy.$userId': FieldValue.serverTimestamp(),
       'remindMeLater.$userId': FieldValue.delete(),
+    });
+  }
+
+  Future<void> markTutorialAsSeen(String userId) async {
+    await _db.collection('members').doc(userId).update({
+      'hasSeenTutorial': true,
     });
   }
 

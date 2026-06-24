@@ -8,6 +8,7 @@ import '../../../models/idea_model.dart';
 import '../../../models/alert_model.dart';
 import '../../../services/database_service.dart';
 import '../../../services/storage_service.dart';
+import '../../../widgets/image_edit_dialog.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/user_provider.dart';
 
@@ -24,6 +25,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   late TextEditingController _contentController;
   final StorageService _storageService = StorageService();
   XFile? _image;
+  double _aspectRatio = 16 / 9;
   String? _selectedAsset;
   bool _isUploading = false;
   PostType _selectedType = PostType.ordinaire;
@@ -85,13 +87,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       try {
         croppedFile = await ImageCropper().cropImage(
           sourcePath: image.path,
-          aspectRatioPresets: [
-            CropAspectRatioPreset.original,
-            CropAspectRatioPreset.square,
-            CropAspectRatioPreset.ratio3x2,
-            CropAspectRatioPreset.ratio4x3,
-            CropAspectRatioPreset.ratio16x9,
-          ],
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: 'Recadrer',
@@ -115,7 +110,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 CropAspectRatioPreset.ratio3x2,
                 CropAspectRatioPreset.ratio4x3,
                 CropAspectRatioPreset.ratio16x9,
-              ]            ),
+              ],
+            ),
             WebUiSettings(
               context: context,
               presentStyle: WebPresentStyle.page,
@@ -130,6 +126,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
       setState(() {
         _image = XFile(finalPath);
+        _aspectRatio = 16 / 9; // Default for new pick
         _selectedAsset = null;
       });
     } catch (e) {
@@ -191,6 +188,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       createdAt: DateTime.now(),
       authorId: user?.id ?? 'unknown',
       type: _selectedType,
+      aspectRatio: _aspectRatio,
     );
 
     await dbService.addPost(post);
@@ -307,20 +305,70 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               Stack(
                 alignment: Alignment.topRight,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: _selectedAsset != null
-                        ? Image.asset(_selectedAsset!, height: 150, width: double.infinity, fit: BoxFit.cover)
-                        : (kIsWeb && _image != null
-                            ? FutureBuilder<Uint8List>(
-                                future: _image!.readAsBytes(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData) return Image.memory(snapshot.data!, height: 150, width: double.infinity, fit: BoxFit.cover);
-                                  return const SizedBox(height: 150, child: Center(child: CircularProgressIndicator()));
-                                },
-                              )
-                            : (_image != null ? Image.file(File(_image!.path), height: 150, width: double.infinity, fit: BoxFit.cover) : const SizedBox.shrink())),
+                  GestureDetector(
+                    onTap: _image == null ? null : () async {
+                      final result = await showDialog<EditedImageResult>(
+                        context: context,
+                        builder: (context) => ImageEditDialog(
+                          image: _image!,
+                          initialAspectRatio: _aspectRatio,
+                        ),
+                      );
+                      if (result != null) {
+                        setState(() {
+                          _image = result.image;
+                          _aspectRatio = result.aspectRatio;
+                        });
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: _image != null ? Border.all(color: Colors.blue, width: 2) : null,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 480),
+                            child: AspectRatio(
+                              aspectRatio: _aspectRatio,
+                              child: _selectedAsset != null
+                                  ? Image.asset(_selectedAsset!, width: double.infinity, fit: BoxFit.cover)
+                                  : (kIsWeb && _image != null
+                                      ? FutureBuilder<Uint8List>(
+                                          future: _image!.readAsBytes(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.hasData) return Image.memory(snapshot.data!, width: double.infinity, fit: BoxFit.cover);
+                                            return const Center(child: CircularProgressIndicator());
+                                          },
+                                        )
+                                      : (_image != null ? Image.file(File(_image!.path), width: double.infinity, fit: BoxFit.cover) : const SizedBox.shrink())),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
+                  if (_image != null)
+                    Positioned(
+                      left: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.edit, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text('Modifier', style: TextStyle(color: Colors.white, fontSize: 10)),
+                          ],
+                        ),
+                      ),
+                    ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white, shadows: [Shadow(blurRadius: 2)]),
                     onPressed: () => setState(() {

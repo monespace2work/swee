@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../services/database_service.dart';
 import '../../models/post_model.dart';
 import '../../providers/user_provider.dart';
+import '../../widgets/zoomable_image_viewer.dart';
 import 'package:intl/intl.dart';
 
 class FeedScreen extends StatelessWidget {
@@ -42,37 +43,6 @@ class FeedScreen extends StatelessWidget {
 class PostCard extends StatelessWidget {
   final PostModel post;
   const PostCard({super.key, required this.post});
-
-  void _showZoomedImage(BuildContext context, String imageUrl) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-          ),
-          body: Center(
-            child: InteractiveViewer(
-              minScale: 0.5,
-              maxScale: 5.0,
-              child: Hero(
-                tag: imageUrl,
-                child: imageUrl.startsWith('assets/')
-                    ? Image.asset(imageUrl, fit: BoxFit.contain)
-                    : Image.network(imageUrl, fit: BoxFit.contain),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,37 +129,50 @@ class PostCard extends StatelessWidget {
           if (headerBadge != null) headerBadge,
           
           if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
-            GestureDetector(
-              onTap: () => _showZoomedImage(context, post.imageUrl!),
-              child: Hero(
-                tag: post.imageUrl!,
-                child: Builder(builder: (context) {
-                  final isAsset = post.imageUrl!.startsWith('assets/');
-                  if (isAsset) {
-                    return Image.asset(
-                      post.imageUrl!,
-                      width: double.infinity,
-                      fit: BoxFit.fitWidth,
-                    );
-                  }
-                  return Image.network(
-                    post.imageUrl!,
-                    width: double.infinity,
-                    fit: BoxFit.fitWidth,
-                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        width: double.infinity,
-                        height: 200,
-                        color: isDark ? Colors.white10 : Colors.grey[100],
-                        child: const Center(child: CircularProgressIndicator()),
-                      );
-                    },
-                  );
-                }),
-              ),
-            ),
+            Builder(builder: (context) {
+              final isAsset = post.imageUrl!.startsWith('assets/');
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ZoomableImageViewer(
+                      imageUrl: post.imageUrl!,
+                      isAsset: isAsset,
+                    ),
+                  ),
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 480),
+                    child: Hero(
+                      tag: post.imageUrl!,
+                      child: AspectRatio(
+                        aspectRatio: post.aspectRatio,
+                        child: isAsset
+                            ? Image.asset(
+                                post.imageUrl!,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.network(
+                                post.imageUrl!,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: isDark ? Colors.white10 : Colors.grey[100],
+                                    child: const Center(child: CircularProgressIndicator()),
+                                  );
+                                },
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
           
           Padding(
             padding: const EdgeInsets.all(16.0),

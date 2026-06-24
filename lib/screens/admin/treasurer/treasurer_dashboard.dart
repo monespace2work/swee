@@ -12,12 +12,25 @@ import '../../../widgets/app_header_title.dart';
 import '../../../widgets/user_menu_button.dart';
 import '../../../theme/app_theme.dart';
 
-class TreasurerDashboard extends StatelessWidget {
+class TreasurerDashboard extends StatefulWidget {
   const TreasurerDashboard({super.key});
 
   @override
+  State<TreasurerDashboard> createState() => _TreasurerDashboardState();
+}
+
+class _TreasurerDashboardState extends State<TreasurerDashboard> {
+  late Stream<List<MemberModel>> _membersStream;
+  final DatabaseService _dbService = DatabaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    _membersStream = _dbService.getMembers();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final dbService = DatabaseService();
     final userProvider = Provider.of<UserProvider>(context);
     final isWeb = MediaQuery.of(context).size.width > 900;
 
@@ -127,10 +140,10 @@ class TreasurerDashboard extends StatelessWidget {
               ),
               
               StreamBuilder<List<MemberModel>>(
-                stream: dbService.getMembers(),
+                stream: _membersStream,
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                  final pending = snapshot.data!.where((m) => m.status == UserStatus.enAttenteTresorier).toList();
+                  if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                  final pending = (snapshot.data ?? []).where((m) => m.status == UserStatus.enAttenteTresorier).toList();
                   
                   if (pending.isEmpty) {
                     return Container(
@@ -296,17 +309,17 @@ class TreasurerDashboard extends StatelessWidget {
   }
 
   void _validateMember(String id) async {
-    final dbService = DatabaseService();
-    await dbService.updateMember(id, {'status': 'enAttentePresident'});
+    await _dbService.updateMember(id, {'status': 'enAttentePresident'});
     
     // AA to President
-    final presidentIds = await dbService.getUserIdsByRole(UserRole.president);
-    await dbService.sendAutomaticAlert(
+    final presidentIds = await _dbService.getUserIdsByRole(UserRole.president);
+    await _dbService.sendAutomaticAlert(
       title: 'Validation membre (Niveau 2)',
       details: 'Le trésorier a validé une inscription. En attente de votre validation finale.',
-      initiatorId: dbService.currentUser?.uid ?? 'system',
+      initiatorId: _dbService.currentUser?.uid ?? 'system',
       targetType: AlertTarget.manual,
       targetUserIds: presidentIds,
+      memberId: id,
     );
   }
 }

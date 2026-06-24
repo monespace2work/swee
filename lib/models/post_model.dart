@@ -9,6 +9,7 @@ class PostModel {
   final String authorId;
   final bool isActive;
   final PostType type;
+  final double aspectRatio;
   final Map<String, String> votes; // memberId -> 'like'|'dislike'|'neutral'
 
   PostModel({
@@ -20,6 +21,7 @@ class PostModel {
     required this.authorId,
     this.isActive = true,
     this.type = PostType.ordinaire,
+    this.aspectRatio = 16 / 9,
     this.votes = const {},
   });
 
@@ -48,6 +50,7 @@ class PostModel {
         (e) => e.toString().split('.').last == (data['type'] ?? 'ordinaire'),
         orElse: () => PostType.ordinaire,
       ),
+      aspectRatio: (data['aspectRatio'] ?? 16 / 9).toDouble(),
       votes: votesMap,
     );
   }
@@ -61,6 +64,7 @@ class PostModel {
       'authorId': authorId,
       'isActive': isActive,
       'type': type.toString().split('.').last,
+      'aspectRatio': aspectRatio,
       'votes': votes,
     };
   }
