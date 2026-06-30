@@ -7,8 +7,6 @@ import '../models/member_model.dart';
 import '../models/alert_model.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
-import '../screens/admin/admin_dashboard_screen.dart';
-import '../theme/app_theme.dart';
 
 class AlertListenerWrapper extends StatefulWidget {
   final Widget child;

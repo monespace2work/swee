@@ -39,7 +39,7 @@ class AppHeaderTitle extends StatelessWidget {
                 height: 35,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
                 child: ClipOval(
                   child: logoUrl != null
@@ -71,7 +71,7 @@ class AppHeaderTitle extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w400,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ],

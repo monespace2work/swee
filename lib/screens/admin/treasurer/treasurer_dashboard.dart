@@ -150,7 +150,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
                       padding: const EdgeInsets.all(40),
                       child: Column(
                         children: [
-                          Icon(Icons.check_circle_outline, size: 48, color: Colors.green.withOpacity(0.5)),
+                          Icon(Icons.check_circle_outline, size: 48, color: Colors.green.withValues(alpha: 0.5)),
                           const SizedBox(height: 16),
                           const Text('Tout est à jour ! Aucune validation requise.', style: TextStyle(color: Colors.grey)),
                         ],
@@ -169,7 +169,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: AppTheme.gold.withOpacity(0.1),
+                            backgroundColor: AppTheme.gold.withValues(alpha: 0.1),
                             child: Text(member.nom[0], style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
                           ),
                           title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -210,19 +210,19 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
           boxShadow: [
             // Ombre portée pour l'effet 3D
             BoxShadow(
-              color: isDark ? Colors.black.withOpacity(0.5) : Colors.grey.withOpacity(0.3),
+              color: isDark ? Colors.black.withValues(alpha: 0.5) : Colors.grey.withValues(alpha: 0.3),
               offset: const Offset(0, 4),
               blurRadius: 0,
             ),
             // Ombre douce
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               offset: const Offset(0, 10),
               blurRadius: 10,
             ),
           ],
           border: Border.all(
-            color: isDark ? AppTheme.gold.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+            color: isDark ? AppTheme.gold.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -243,7 +243,7 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppTheme.gold.withOpacity(0.1),
+                        color: AppTheme.gold.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(icon, color: AppTheme.gold, size: 24),

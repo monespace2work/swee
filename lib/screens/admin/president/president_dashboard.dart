@@ -5,19 +5,19 @@ import '../../../services/database_service.dart';
 import '../../../models/member_model.dart';
 import '../../../models/alert_model.dart';
 import '../../../services/auth_service.dart';
-import '../../auth/auth_wrapper.dart';
-import '../../../widgets/app_header_title.dart';
-import '../../../widgets/user_menu_button.dart';
-import '../secretary/association_settings_screen.dart';
-import '../secretary/member_management_screen.dart';
-import '../secretary/idea_moderation_screen.dart';
-import '../secretary/post_management_screen.dart';
 import '../alerts/manage_alerts_screen.dart';
 import 'role_management_screen.dart';
 import 'strategic_insights_screen.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/post_model.dart';
 import '../../../models/idea_model.dart';
+import '../../../widgets/app_header_title.dart';
+import '../../../widgets/user_menu_button.dart';
+import '../secretary/member_management_screen.dart';
+import '../secretary/idea_moderation_screen.dart';
+import '../secretary/post_management_screen.dart';
+import '../secretary/association_settings_screen.dart';
+
 
 class PresidentDashboard extends StatefulWidget {
   const PresidentDashboard({super.key});
@@ -157,17 +157,21 @@ class _PresidentDashboardState extends State<PresidentDashboard> {
             StreamBuilder<List<MemberModel>>(
               stream: _membersStream,
               builder: (context, snapshot) {
-                if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) return const Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Center(child: CircularProgressIndicator()),
-                );
+                if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
                 
                 final pending = (snapshot.data ?? []).where((m) => m.status == UserStatus.enAttentePresident).toList();
                 
-                if (pending.isEmpty) return const Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Center(child: Text('Aucune validation en attente.')),
-                );
+                if (pending.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(20.0),
+                    child: Center(child: Text('Aucune validation en attente.')),
+                  );
+                }
 
                 return ListView.builder(
                   shrinkWrap: true,
@@ -430,7 +434,7 @@ class _PresidentDashboardState extends State<PresidentDashboard> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.gold.withOpacity(0.2),
+          color: AppTheme.gold.withValues(alpha: 0.2),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: AppTheme.darkBlue),

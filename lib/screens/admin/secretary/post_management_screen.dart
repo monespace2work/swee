@@ -55,42 +55,54 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
             ),
           ),
           Expanded(
-            child: StreamBuilder<List<PostModel>>(
-              stream: _dbService.getPosts(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                var allPosts = snapshot.data ?? [];
-                
-                // Filtrage selon le rôle (Super Admin voit tout, les autres voient les leurs)
-                List<PostModel> posts;
-                if (currentUser?.role == UserRole.president) {
-                  posts = allPosts;
-                } else {
-                  posts = allPosts.where((p) => p.authorId == currentUser?.id).toList();
-                }
-
-                // Filtrage par recherche
-                if (_searchQuery.isNotEmpty) {
-                  posts = posts.where((p) => 
-                    p.title.toLowerCase().contains(_searchQuery) || 
-                    p.content.toLowerCase().contains(_searchQuery)
-                  ).toList();
-                }
-
-                posts.sort((a, b) => _sortAscending 
-                    ? a.createdAt.compareTo(b.createdAt) 
-                    : b.createdAt.compareTo(a.createdAt));
-
-                if (posts.isEmpty) {
-                  return const Center(child: Text('Aucune publication trouvée.'));
-                }
-
-                return ListView.builder(
-                  itemCount: posts.length,
-                  itemBuilder: (context, index) {
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await Future.delayed(const Duration(milliseconds: 800));
+                if (mounted) setState(() {});
+              },
+              child: StreamBuilder<List<PostModel>>(
+                stream: _dbService.getPosts(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  var allPosts = snapshot.data ?? [];
+                  
+                  // Filtrage selon le rôle (Super Admin voit tout, les autres voient les leurs)
+                  List<PostModel> posts;
+                  if (currentUser?.role == UserRole.president) {
+                    posts = allPosts;
+                  } else {
+                    posts = allPosts.where((p) => p.authorId == currentUser?.id).toList();
+                  }
+  
+                  // Filtrage par recherche
+                  if (_searchQuery.isNotEmpty) {
+                    posts = posts.where((p) => 
+                      p.title.toLowerCase().contains(_searchQuery) || 
+                      p.content.toLowerCase().contains(_searchQuery)
+                    ).toList();
+                  }
+  
+                  posts.sort((a, b) => _sortAscending 
+                      ? a.createdAt.compareTo(b.createdAt) 
+                      : b.createdAt.compareTo(a.createdAt));
+  
+                  if (posts.isEmpty) {
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 100),
+                        Center(child: Text('Aucune publication trouvée.')),
+                      ],
+                    );
+                  }
+  
+                  return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: posts.length,
+                    itemBuilder: (context, index) {
                     final post = posts[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -142,8 +154,9 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
               },
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
           context, 
@@ -186,7 +199,7 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<PostType>(
-                  value: selectedType,
+                  initialValue: selectedType,
                   decoration: const InputDecoration(labelText: 'Type de publication'),
                   items: PostType.values.map((type) => DropdownMenuItem(
                     value: type,
@@ -231,8 +244,10 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
                         maxHeight: 1080,
                         imageQuality: 85,
                       );
-                      if (img != null) {
-                        CroppedFile? croppedFile;
+                      if (img == null) return;
+                      if (!context.mounted) return;
+
+                      CroppedFile? croppedFile;
                         try {
                           croppedFile = await ImageCropper().cropImage(
                             sourcePath: img.path,
@@ -271,8 +286,7 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
 
                         final String finalPath = croppedFile?.path ?? img.path;
                         setDialogState(() => newImage = XFile(finalPath));
-                      }
-                    } catch (e) {
+                      } catch (e) {
                       debugPrint("Error picking image: $e");
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -348,9 +362,9 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
         color = Colors.orange;
         break;
       case PostType.ordinaire:
-      default:
         icon = Icons.chat;
         color = Colors.grey;
+        break;
     }
 
     return Stack(
@@ -372,7 +386,7 @@ class _PostManagementScreenState extends State<PostManagementScreen> {
           Container(
             width: 50,
             height: 50,
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
             child: Icon(icon, color: color),
           ),
         Positioned(

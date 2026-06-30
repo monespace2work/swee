@@ -159,7 +159,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text('Erreur: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
@@ -199,7 +199,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
                     padding: const EdgeInsets.all(32),
                     child: Column(
                       children: [
-                        Icon(Icons.lightbulb_outline, size: 48, color: Colors.grey.withOpacity(0.5)),
+                        Icon(Icons.lightbulb_outline, size: 48, color: Colors.grey.withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
                         Text(
                           isModerator 
@@ -283,9 +283,9 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.blueGrey.withOpacity(0.2) : Colors.blueGrey.withOpacity(0.05),
+                  color: isDark ? Colors.blueGrey.withValues(alpha: 0.2) : Colors.blueGrey.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blueGrey.withOpacity(0.3)),
+                  border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,7 +354,7 @@ class _IdeaBoxScreenState extends State<IdeaBoxScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color, width: 1),
       ),

@@ -6,13 +6,30 @@ import '../../providers/user_provider.dart';
 import '../../widgets/zoomable_image_viewer.dart';
 import 'package:intl/intl.dart';
 
-class FeedScreen extends StatelessWidget {
+class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final dbService = DatabaseService();
+  State<FeedScreen> createState() => _FeedScreenState();
+}
 
+class _FeedScreenState extends State<FeedScreen> {
+  final DatabaseService dbService = DatabaseService();
+
+  Future<void> _onRefresh() async {
+    // Pour une application utilisant des Streams Firestore, 
+    // le rafraîchissement est automatique.
+    // On ajoute un délai pour l'effet visuel attendu par l'utilisateur.
+    await Future.delayed(const Duration(seconds: 1));
+    if (mounted) {
+      setState(() {
+        // Redéclenche le build du StreamBuilder si nécessaire
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<List<PostModel>>(
       stream: dbService.getPosts(),
       builder: (context, snapshot) {
@@ -20,20 +37,42 @@ class FeedScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('Aucune publication pour le moment.'));
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 100),
+                Center(child: Text('Aucune publication pour le moment.')),
+              ],
+            ),
+          );
         }
 
         final posts = snapshot.data!.where((p) => p.isActive).toList();
         
         if (posts.isEmpty) {
-          return const Center(child: Text('Aucune publication active pour le moment.'));
+          return RefreshIndicator(
+            onRefresh: _onRefresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 100),
+                Center(child: Text('Aucune publication active pour le moment.')),
+              ],
+            ),
+          );
         }
 
-        return ListView.builder(
-          itemCount: posts.length,
-          itemBuilder: (context, index) {
-            return PostCard(post: posts[index]);
-          },
+        return RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              return PostCard(post: posts[index]);
+            },
+          ),
         );
       },
     );
@@ -59,7 +98,7 @@ class PostCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(isDark ? 0.4 : 0.2),
+              color: Colors.blue.withValues(alpha: isDark ? 0.4 : 0.2),
               blurRadius: 20,
               spreadRadius: 2,
               offset: const Offset(0, 8),
@@ -85,7 +124,7 @@ class PostCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.orange.withOpacity(isDark ? 0.5 : 0.3),
+              color: Colors.orange.withValues(alpha: isDark ? 0.5 : 0.3),
               blurRadius: 25,
               spreadRadius: 1,
               offset: const Offset(0, 10),
@@ -100,23 +139,23 @@ class PostCard extends StatelessWidget {
         break;
         
       case PostType.ordinaire:
-      default:
         decoration = BoxDecoration(
           color: isDark ? const Color(0xFF001F3F) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
           ],
           border: Border.all(
-            color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey.withOpacity(0.2),
+            color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2),
             width: 1,
           ),
         );
         headerBadge = null;
+        break;
     }
 
     return Container(
@@ -126,9 +165,9 @@ class PostCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (headerBadge != null) headerBadge,
+          ?headerBadge,
           
-          if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
+          if (post.imageUrl?.isNotEmpty ?? false)
             Builder(builder: (context) {
               final isAsset = post.imageUrl!.startsWith('assets/');
               return GestureDetector(
@@ -253,7 +292,7 @@ class PostCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(child: Divider(color: Colors.blue.withOpacity(0.3))),
+                      Expanded(child: Divider(color: Colors.blue.withValues(alpha: 0.3))),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -387,7 +426,7 @@ class VoteSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         width: 100,
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: isSelected ? color : (isDark ? Colors.white24 : Colors.black12)),
         ),
@@ -442,7 +481,7 @@ class CommentListSection extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -503,7 +542,7 @@ class _CommentInputFieldState extends State<CommentInputField> {
             decoration: InputDecoration(
               hintText: 'Écrire un commentaire...',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
-              fillColor: Colors.grey.withOpacity(0.1),
+              fillColor: Colors.grey.withValues(alpha: 0.1),
               filled: true,
               isDense: true,
             ),

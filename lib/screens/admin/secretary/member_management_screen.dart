@@ -12,7 +12,6 @@ import '../../../providers/user_provider.dart';
 import '../../../widgets/user_menu_button.dart';
 import '../../../widgets/member_avatar.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 enum MemberSortOption { alphabetical, chronological, status, gender }
 
@@ -81,66 +80,81 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             children: [
               if (_showFilters || isLargeScreen) _buildFilterPanel(isLargeScreen),
               Expanded(
-                child: StreamBuilder<List<MemberModel>>(
-                  stream: _dbService.getMembers(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                    
-                    List<MemberModel> members = snapshot.data!;
-                    
-                    // 1. Apply Filtering
-                    if (_searchQuery.isNotEmpty) {
-                      members = members.where((m) => 
-                        '${m.prenom} ${m.nom}'.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                        m.email.toLowerCase().contains(_searchQuery.toLowerCase())
-                      ).toList();
-                    }
-                    if (_statusFilter != null) {
-                      members = members.where((m) => m.status == _statusFilter).toList();
-                    }
-                    if (_genderFilter != null) {
-                      members = members.where((m) => m.genre == _genderFilter).toList();
-                    }
-    
-                    // 2. Apply Sorting
-                    members.sort((a, b) {
-                      int cmp;
-                      switch (_sortOption) {
-                        case MemberSortOption.alphabetical:
-                          cmp = a.nom.toLowerCase().compareTo(b.nom.toLowerCase());
-                          break;
-                        case MemberSortOption.chronological:
-                          cmp = a.dateInscription.compareTo(b.dateInscription);
-                          break;
-                        case MemberSortOption.status:
-                          cmp = a.status.index.compareTo(b.status.index);
-                          break;
-                        case MemberSortOption.gender:
-                          cmp = a.genre.compareTo(b.genre);
-                          break;
-                      }
-                      return _isAscending ? cmp : -cmp;
-                    });
-    
-                    if (members.isEmpty) {
-                      return const Center(child: Text('Aucun membre ne correspond aux critères.'));
-                    }
-    
-                    return ListView.builder(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isLargeScreen ? 24 : 8,
-                        vertical: 16
-                      ),
-                      itemCount: members.length,
-                      itemBuilder: (context, index) {
-                        final member = members[index];
-                        if (isLargeScreen) {
-                          return _buildWebMemberTile(member);
-                        }
-                        return _buildMobileMemberTile(member);
-                      },
-                    );
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    // Les streams se mettent à jour seuls, mais on peut forcer 
+                    // un rebuild si on veut ou juste attendre pour l'UX.
+                    await Future.delayed(const Duration(milliseconds: 800));
+                    if (mounted) setState(() {});
                   },
+                  child: StreamBuilder<List<MemberModel>>(
+                    stream: _dbService.getMembers(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                      
+                      List<MemberModel> members = snapshot.data!;
+                      
+                      // 1. Apply Filtering
+                      if (_searchQuery.isNotEmpty) {
+                        members = members.where((m) => 
+                          '${m.prenom} ${m.nom}'.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                          m.email.toLowerCase().contains(_searchQuery.toLowerCase())
+                        ).toList();
+                      }
+                      if (_statusFilter != null) {
+                        members = members.where((m) => m.status == _statusFilter).toList();
+                      }
+                      if (_genderFilter != null) {
+                        members = members.where((m) => m.genre == _genderFilter).toList();
+                      }
+      
+                      // 2. Apply Sorting
+                      members.sort((a, b) {
+                        int cmp;
+                        switch (_sortOption) {
+                          case MemberSortOption.alphabetical:
+                            cmp = a.nom.toLowerCase().compareTo(b.nom.toLowerCase());
+                            break;
+                          case MemberSortOption.chronological:
+                            cmp = a.dateInscription.compareTo(b.dateInscription);
+                            break;
+                          case MemberSortOption.status:
+                            cmp = a.status.index.compareTo(b.status.index);
+                            break;
+                          case MemberSortOption.gender:
+                            cmp = a.genre.compareTo(b.genre);
+                            break;
+                        }
+                        return _isAscending ? cmp : -cmp;
+                      });
+      
+                      if (members.isEmpty) {
+                        return ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: const [
+                            SizedBox(height: 100),
+                            Center(child: Text('Aucun membre ne correspond aux critères.')),
+                          ],
+                        );
+                      }
+      
+                      return ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isLargeScreen ? 24 : 8,
+                          vertical: 16
+                        ),
+                        itemCount: members.length,
+                        itemBuilder: (context, index) {
+                          final member = members[index];
+                          if (isLargeScreen) {
+                            return _buildWebMemberTile(member);
+                          }
+                          return _buildMobileMemberTile(member);
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
             ],
@@ -192,7 +206,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.orange),
                 ),
@@ -214,9 +228,9 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.1)),
+          border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))
           ],
         ),
         child: Row(
@@ -237,7 +251,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<UserStatus?>(
-                value: _statusFilter,
+                initialValue: _statusFilter,
                 decoration: const InputDecoration(labelText: 'Statut', isDense: true, border: OutlineInputBorder()),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('Tous les statuts')),
@@ -250,7 +264,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             Expanded(
               flex: 1,
               child: DropdownButtonFormField<String?>(
-                value: _genderFilter,
+                initialValue: _genderFilter,
                 decoration: const InputDecoration(labelText: 'Sexe', isDense: true, border: OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: null, child: Text('Tous')),
@@ -361,6 +375,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
             );
             
             if (pickedFile == null) return;
+            if (!context.mounted) return;
 
             // Recadrage
             CroppedFile? croppedFile;
@@ -408,7 +423,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
 
           return AlertDialog(
             title: const Text('Ajouter un Membre'),
-            content: Container(
+            content: SizedBox(
               width: isLargeScreen ? 500 : null,
               child: SingleChildScrollView(
                 child: Column(
@@ -455,7 +470,7 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
                     TextField(controller: adresseController, decoration: const InputDecoration(labelText: 'Adresse')),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: selectedGenre,
+                      initialValue: selectedGenre,
                       decoration: const InputDecoration(labelText: 'Genre *'),
                       items: const [
                         DropdownMenuItem(value: 'M', child: Text('Masculin')),
@@ -659,6 +674,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
     );
     
     if (pickedFile == null) return;
+    if (!mounted) return;
 
     // Recadrage
     CroppedFile? croppedFile;
@@ -784,7 +800,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
     
     return Card(
       elevation: 0,
-      color: isDark ? AppTheme.gold : Colors.orange.withOpacity(0.1),
+      color: isDark ? AppTheme.gold : Colors.orange.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: isDark ? AppTheme.gold : Colors.orange, width: 0.5),
@@ -813,7 +829,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
               'Le membre a mis à jour ses informations :', 
               style: TextStyle(
                 fontSize: 13,
-                color: isDark ? AppTheme.darkBlue.withOpacity(0.8) : null,
+                color: isDark ? AppTheme.darkBlue.withValues(alpha: 0.8) : null,
               )
             ),
             const SizedBox(height: 16),
@@ -828,7 +844,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? AppTheme.darkBlue.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
+                  border: Border.all(color: isDark ? AppTheme.darkBlue.withValues(alpha: 0.3) : Colors.orange.withValues(alpha: 0.3)),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(11),
@@ -898,7 +914,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
-                          color: isDark ? AppTheme.darkBlue.withOpacity(0.7) : Colors.grey[600],
+                          color: isDark ? AppTheme.darkBlue.withValues(alpha: 0.7) : Colors.grey[600],
                         )
                       ),
                       Text(
@@ -970,6 +986,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
     );
 
     if (confirmed != true) return;
+    if (!mounted) return;
 
     // Capturer les données nécessaires avant toute opération asynchrone
     final String memberId = widget.member.id;
@@ -1094,7 +1111,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
           _buildField(_adresseController, 'Adresse', isDark),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _selectedGenre,
+            initialValue: _selectedGenre,
             dropdownColor: isDark ? AppTheme.deepNavy : Colors.white,
             style: TextStyle(color: isDark ? Colors.white : AppTheme.darkBlue),
             decoration: const InputDecoration(labelText: 'Genre', border: OutlineInputBorder()),
@@ -1145,7 +1162,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<UserStatus>(
-          value: _selectedStatus,
+          initialValue: _selectedStatus,
           dropdownColor: isDark ? AppTheme.deepNavy : Colors.white,
           style: TextStyle(color: isDark ? Colors.white : AppTheme.darkBlue),
           decoration: InputDecoration(
@@ -1168,7 +1185,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<UserRole>(
-          value: _selectedRole,
+          initialValue: _selectedRole,
           dropdownColor: isDark ? AppTheme.deepNavy : Colors.white,
           style: TextStyle(color: isDark ? Colors.white : AppTheme.darkBlue),
           decoration: InputDecoration(
@@ -1234,6 +1251,7 @@ class _MemberDetailsViewState extends State<MemberDetailsView> {
               }
 
               await widget.dbService.updateMember(widget.member.id, updateData);
+              if (!mounted) return;
 
               // AA to Member if status changed by President
               if (oldStatus != newStatus) {

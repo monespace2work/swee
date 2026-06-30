@@ -106,7 +106,7 @@ class _AppTutorialState extends State<AppTutorial> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: step.color.withOpacity(0.1),
+                          color: step.color.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(step.icon, size: 80, color: step.color),
@@ -147,7 +147,7 @@ class _AppTutorialState extends State<AppTutorial> {
                         shape: BoxShape.circle,
                         color: _currentPage == index
                             ? AppTheme.gold
-                            : Colors.grey.withOpacity(0.3),
+                            : Colors.grey.withValues(alpha: 0.3),
                       ),
                     ),
                   ),

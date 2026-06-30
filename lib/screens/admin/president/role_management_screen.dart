@@ -17,7 +17,7 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
   String _searchQuery = '';
   
   // State for local permission modifications before saving
-  Map<String, Map<String, bool>> _localPermissions = {};
+  final Map<String, Map<String, bool>> _localPermissions = {};
   bool _hasChanges = false;
   bool _isSaving = false;
 

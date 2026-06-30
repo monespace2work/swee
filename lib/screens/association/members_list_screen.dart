@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/member_model.dart';
 import '../../services/database_service.dart';
-import '../../theme/app_theme.dart';
 import '../../widgets/member_avatar.dart';
 
 class MembersListScreen extends StatefulWidget {
@@ -109,9 +108,9 @@ class _MembersListScreenState extends State<MembersListScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: _getRoleColor(member.role).withOpacity(0.1),
+                              color: _getRoleColor(member.role).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: _getRoleColor(member.role).withOpacity(0.5)),
+                              border: Border.all(color: _getRoleColor(member.role).withValues(alpha: 0.5)),
                             ),
                             child: Text(
                               _getRoleLabel(member.role),

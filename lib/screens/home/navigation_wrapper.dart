@@ -9,10 +9,8 @@ import '../ideas/idea_box_screen.dart';
 import '../finance/my_account_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../alerts/user_alerts_screen.dart';
-import '../../services/auth_service.dart';
 import '../../widgets/app_header_title.dart';
 import '../../widgets/user_menu_button.dart';
-import '../auth/auth_wrapper.dart';
 import '../../widgets/app_tutorial.dart';
 import '../../theme/app_theme.dart';
 

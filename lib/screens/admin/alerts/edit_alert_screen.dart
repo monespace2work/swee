@@ -77,7 +77,7 @@ class _EditAlertScreenState extends State<EditAlertScreen> {
               const SizedBox(height: 16),
               const Text('Destinataires', style: TextStyle(fontWeight: FontWeight.bold)),
               DropdownButtonFormField<AlertTarget>(
-                value: _targetType,
+                initialValue: _targetType,
                 items: AlertTarget.values.map((t) => DropdownMenuItem(
                   value: t,
                   child: Text(_getTargetText(t)),
@@ -157,6 +157,7 @@ class _EditAlertScreenState extends State<EditAlertScreen> {
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
+    if (!mounted) return;
     if (date != null) {
       final time = await showTimePicker(
         context: context,

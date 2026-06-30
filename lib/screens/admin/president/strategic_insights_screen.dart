@@ -77,16 +77,20 @@ class StrategicInsightsScreen extends StatelessWidget {
 
         for (var p in payments) {
           total += p.montant;
-          if (p.type == PaymentType.adhesion) adhesion += p.montant;
-          else if (p.type == PaymentType.mensuelle) monthly += p.montant;
-          else extra += p.montant;
+          if (p.type == PaymentType.adhesion) {
+            adhesion += p.montant;
+          } else if (p.type == PaymentType.mensuelle) {
+            monthly += p.montant;
+          } else {
+            extra += p.montant;
+          }
         }
 
         return Column(
           children: [
             _buildMainStatCard(
               'Trésorerie Totale',
-              '${NumberFormat.currency(locale: 'fr_FR', symbol: 'FCFA', decimalDigits: 0).format(total)}',
+              NumberFormat.currency(locale: 'fr_FR', symbol: 'FCFA', decimalDigits: 0).format(total),
               [AppTheme.darkBlue, const Color(0xFF003399)],
               Icons.account_balance,
             ),
@@ -96,7 +100,7 @@ class StrategicInsightsScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isDark ? AppTheme.deepNavy : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +151,7 @@ class StrategicInsightsScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: percentage,
-            backgroundColor: color.withOpacity(0.1),
+            backgroundColor: color.withValues(alpha: 0.1),
             color: color,
             minHeight: 6,
           ),
@@ -244,9 +248,9 @@ class StrategicInsightsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.gold.withOpacity(0.05) : AppTheme.gold.withOpacity(0.1),
+        color: isDark ? AppTheme.gold.withValues(alpha: 0.05) : AppTheme.gold.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.gold.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.gold.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,14 +298,14 @@ class StrategicInsightsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: colors[0].withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: colors[0].withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 6))],
       ),
       child: Stack(
         children: [
           Positioned(
             right: -10,
             bottom: -10,
-            child: Icon(icon, size: 100, color: Colors.white.withOpacity(0.1)),
+            child: Icon(icon, size: 100, color: Colors.white.withValues(alpha: 0.1)),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,37 +320,13 @@ class StrategicInsightsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMiniStatCard(String title, double amount, Color color, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.deepNavy : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          FittedBox(
-            child: Text(
-              '${NumberFormat.compact().format(amount)}',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppTheme.darkBlue),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildProgressCard(String title, double progress, String subtitle, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? AppTheme.deepNavy : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,14 +364,14 @@ class StrategicInsightsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? AppTheme.deepNavy : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: Icon(Icons.trending_up, color: color, size: 20),
           ),
           const SizedBox(height: 16),

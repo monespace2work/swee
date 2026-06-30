@@ -91,7 +91,7 @@ class AssociationDetailsScreen extends StatelessWidget {
                     border: Border.all(color: AppTheme.gold, width: 3),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       ),
@@ -147,13 +147,13 @@ class AssociationDetailsScreen extends StatelessWidget {
                 const SizedBox(height: 40),
                 const Divider(),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Swee App v1.0.7',
-                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
                 ),
-                const Text(
-                  '© 2024 - Plateforme de Gestion d\'Association',
-                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                Text(
+                  '© ${DateTime.now().year} - Canal d\'information de l\'association',
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
                 ),
                 const SizedBox(height: 40),
               ],
@@ -170,7 +170,7 @@ class AssociationDetailsScreen extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.gold.withOpacity(0.1),
+          color: AppTheme.gold.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: AppTheme.gold, size: 20),
@@ -188,7 +188,7 @@ class AssociationDetailsScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          border: Border.all(color: AppTheme.gold.withOpacity(0.5)),
+          border: Border.all(color: AppTheme.gold.withValues(alpha: 0.5)),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 28, color: AppTheme.gold),

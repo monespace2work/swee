@@ -46,7 +46,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
                 return DropdownButtonFormField<MemberModel>(
                   hint: const Text('Sélectionner un membre'),
                   // S'assurer que la valeur sélectionnée est toujours présente dans la liste filtrée
-                  value: (members.contains(_selectedMember)) ? _selectedMember : null,
+                  initialValue: (members.contains(_selectedMember)) ? _selectedMember : null,
                   onChanged: (m) => setState(() => _selectedMember = m),
                   items: members.map((m) => DropdownMenuItem(
                     value: m,
@@ -57,7 +57,7 @@ class _RecordPaymentScreenState extends State<RecordPaymentScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<PaymentType>(
-              value: _selectedType,
+              initialValue: _selectedType,
               onChanged: (t) => setState(() => _selectedType = t!),
               items: PaymentType.values.map((t) => DropdownMenuItem(
                 value: t,

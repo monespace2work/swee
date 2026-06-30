@@ -100,6 +100,7 @@ class _AssociationSettingsScreenState extends State<AssociationSettingsScreen> {
         maxHeight: 500,
         imageQuality: 85,
       );
+      if (!mounted) return;
       if (img != null) {
         CroppedFile? croppedFile;
         try {

@@ -160,17 +160,21 @@ class _SecretaryDashboardState extends State<SecretaryDashboard> {
                 StreamBuilder<List<MemberModel>>(
                   stream: _membersStream,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) return const Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
+                    if (!snapshot.hasData && snapshot.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
                     
                     final pending = (snapshot.data ?? []).where((m) => m.pendingModifications != null).toList();
                     
-                    if (pending.isEmpty) return const Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: Center(child: Text('Aucune modification à valider.')),
-                    );
+                    if (pending.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Center(child: Text('Aucune modification à valider.')),
+                      );
+                    }
 
                     return ListView.builder(
                       shrinkWrap: true,

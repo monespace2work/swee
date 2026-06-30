@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/alert_model.dart';
-import '../../models/member_model.dart';
 import '../../providers/user_provider.dart';
 import '../../services/database_service.dart';
 import '../../theme/app_theme.dart';
@@ -22,39 +21,51 @@ class UserAlertsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Mes Alertes'),
       ),
-      body: StreamBuilder<List<AlertModel>>(
-        stream: DatabaseService().getRelevantAlertsForUser(user.id, user.role),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('Aucune alerte pour le moment', style: TextStyle(color: Colors.grey)),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await userProvider.refreshProfile();
+          await Future.delayed(const Duration(milliseconds: 500));
+        },
+        child: StreamBuilder<List<AlertModel>>(
+          stream: DatabaseService().getRelevantAlertsForUser(user.id, user.role),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 100),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('Aucune alerte pour le moment', style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
-            );
-          }
+              );
+            }
 
-          final alerts = snapshot.data!;
-          // Sort alerts: unread first, then by date
-          alerts.sort((a, b) {
-            bool aViewed = a.viewedBy.containsKey(user.id);
-            bool bViewed = b.viewedBy.containsKey(user.id);
-            if (aViewed != bViewed) return aViewed ? 1 : -1;
-            return b.createdAt.compareTo(a.createdAt);
-          });
+            final alerts = snapshot.data!;
+            // Sort alerts: unread first, then by date
+            alerts.sort((a, b) {
+              bool aViewed = a.viewedBy.containsKey(user.id);
+              bool bViewed = b.viewedBy.containsKey(user.id);
+              if (aViewed != bViewed) return aViewed ? 1 : -1;
+              return b.createdAt.compareTo(a.createdAt);
+            });
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: alerts.length,
-            itemBuilder: (context, index) {
+            return ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: alerts.length,
+              itemBuilder: (context, index) {
               final alert = alerts[index];
               final bool isViewed = alert.viewedBy.containsKey(user.id);
 
@@ -81,7 +92,7 @@ class UserAlertsScreen extends StatelessWidget {
                       : (isDark ? AppTheme.darkBlue : Colors.white),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: isViewed ? BorderSide.none : BorderSide(color: Colors.orange.withOpacity(0.5)),
+                    side: isViewed ? BorderSide.none : BorderSide(color: Colors.orange.withValues(alpha: 0.5)),
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -131,8 +142,9 @@ class UserAlertsScreen extends StatelessWidget {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _confirmDismiss(BuildContext context, String alertId, String userId) {
     showDialog(

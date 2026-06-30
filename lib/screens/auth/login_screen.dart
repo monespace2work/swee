@@ -82,13 +82,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Divider(),
                 TextButton(
                   onPressed: () async {
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const RegisterScreen()),
                     );
                     
-                    if (result == "success" && mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    if (result == "success") {
+                      scaffoldMessenger.showSnackBar(
                         const SnackBar(
                           content: Text('Compte créé avec succès ! Connectez-vous.'),
                           backgroundColor: Colors.green,

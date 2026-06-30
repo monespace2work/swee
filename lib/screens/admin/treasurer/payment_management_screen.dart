@@ -98,7 +98,7 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
                                     ],
                                   ),
                                   trailing: Text(
-                                    '${NumberFormat.currency(locale: 'fr_FR', symbol: 'F', decimalDigits: 0).format(payment.montant)}',
+                                    NumberFormat.currency(locale: 'fr_FR', symbol: 'F', decimalDigits: 0).format(payment.montant),
                                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
                                   ),
                                   isThreeLine: true,
@@ -139,7 +139,7 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${NumberFormat.currency(locale: 'fr_FR', symbol: 'FCFA', decimalDigits: 0).format(total)}',
+            NumberFormat.currency(locale: 'fr_FR', symbol: 'FCFA', decimalDigits: 0).format(total),
             style: TextStyle(
               color: isDark ? AppTheme.darkBlue : Colors.white,
               fontSize: 24,
@@ -149,7 +149,7 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
           Text(
             '$count transactions',
             style: TextStyle(
-              color: isDark ? AppTheme.darkBlue.withOpacity(0.7) : Colors.white60,
+              color: isDark ? AppTheme.darkBlue.withValues(alpha: 0.7) : Colors.white60,
               fontSize: 12,
             ),
           ),
@@ -169,7 +169,7 @@ class _PaymentManagementScreenState extends State<PaymentManagementScreen> {
             builder: (context, snapshot) {
               final members = snapshot.data ?? [];
               return DropdownButtonFormField<String?>(
-                value: _selectedMemberId,
+                initialValue: _selectedMemberId,
                 decoration: const InputDecoration(
                   labelText: 'Filtrer par membre',
                   isDense: true,

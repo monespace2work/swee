@@ -88,6 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
@@ -264,7 +265,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.gold.withOpacity(0.1),
+                color: AppTheme.gold.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.gold),
               ),
@@ -330,7 +331,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedGenre,
+              initialValue: _selectedGenre,
               decoration: const InputDecoration(labelText: 'Genre *', fillColor: Colors.white, filled: true),
               items: const [
                 DropdownMenuItem(value: 'M', child: Text('Masculin')),

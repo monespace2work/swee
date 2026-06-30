@@ -174,27 +174,26 @@ class _ManageAlertsScreenState extends State<ManageAlertsScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
           TextButton(
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
               try {
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                Navigator.pop(context); // Ferme le dialogue
+                navigator.pop(); // Ferme le dialogue
                 
                 await _dbService.deleteAlert(alert.id);
                 
-                scaffoldMessenger.showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Alerte supprimée avec succès'),
                     backgroundColor: Colors.green,
                   ),
                 );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur lors de la suppression : $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Erreur lors de la suppression : $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             }, 
             child: const Text('Supprimer', style: TextStyle(color: Colors.red)),

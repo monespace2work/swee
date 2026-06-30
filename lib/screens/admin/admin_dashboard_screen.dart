@@ -128,7 +128,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             Text(
               'SÉCURISATION DE L\'ACCÈS',
               style: TextStyle(
-                color: AppTheme.gold.withOpacity(0.8),
+                color: AppTheme.gold.withValues(alpha: 0.8),
                 letterSpacing: 3,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
@@ -160,7 +160,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 60, color: iconColor),

@@ -80,8 +80,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         return;
       }
 
+      if (!mounted) return;
+
       // Délai de stabilisation
       await Future.delayed(const Duration(milliseconds: 200));
+
+      if (!mounted) return;
 
       CroppedFile? croppedFile;
       try {
@@ -232,9 +236,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

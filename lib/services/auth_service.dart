@@ -7,9 +7,6 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Transforme un nom d'utilisateur en email technique pour Firebase Auth
-  String _emailFromUsername(String username) => "${username.trim().toLowerCase()}@swee.app";
-
   Stream<User?> get user => _auth.authStateChanges();
 
   Future<MemberModel?> getMemberProfile(String uid) async {
@@ -107,7 +104,7 @@ class AuthService {
         password: password,
       );
     } catch (e) {
-      print(e.toString());
+      debugPrint(e.toString());
       return null;
     }
   }

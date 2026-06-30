@@ -94,8 +94,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         return;
       }
 
+      if (!mounted) return;
+
       // Délai pour laisser le système respirer
       await Future.delayed(const Duration(milliseconds: 200));
+
+      if (!mounted) return;
 
       // Tentative de recadrage
       CroppedFile? croppedFile;
@@ -343,7 +347,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _selectedGenre,
+                  initialValue: _selectedGenre,
                   decoration: const InputDecoration(labelText: 'Genre'),
                   items: const [
                     DropdownMenuItem(value: 'M', child: Text('Masculin')),
@@ -392,7 +396,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               ElevatedButton(
                 onPressed: () async {
                   await AuthService().signOut();
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (context) => const AuthWrapper()),
                       (route) => false,
@@ -400,7 +404,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.withOpacity(0.1), 
+                  backgroundColor: Colors.red.withValues(alpha: 0.1),
                   foregroundColor: Colors.red,
                   elevation: 0,
                 ),
