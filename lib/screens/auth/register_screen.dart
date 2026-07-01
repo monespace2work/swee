@@ -214,7 +214,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/images/logo.png', height: 100),
+            Image.asset(
+              'assets/images/logo.png',
+              height: 100,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(height: 24),
             const Text(
               'Vérification de l\'inscription',

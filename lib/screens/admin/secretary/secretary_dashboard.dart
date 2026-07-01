@@ -189,8 +189,15 @@ class _SecretaryDashboardState extends State<SecretaryDashboard> {
                               backgroundImage: member.photoUrl.isNotEmpty ? NetworkImage(member.photoUrl) : null,
                               child: member.photoUrl.isEmpty ? const Icon(Icons.person_outline) : null,
                             ),
-                            title: Text('${member.prenom} ${member.nom}'),
-                            subtitle: const Text('Demande de modification de profil'),
+                            title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(member.email, style: const TextStyle(fontSize: 12)),
+                                const Text('Demande de modification de profil', style: TextStyle(fontSize: 11, color: Colors.orange)),
+                              ],
+                            ),
+                            isThreeLine: true,
                             trailing: const Icon(Icons.chevron_right, color: Colors.orange),
                             onTap: () => _showMemberDetailsDirectly(context, member, _dbService),
                           ),

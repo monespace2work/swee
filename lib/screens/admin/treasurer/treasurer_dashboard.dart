@@ -173,7 +173,14 @@ class _TreasurerDashboardState extends State<TreasurerDashboard> {
                             child: Text(member.nom[0], style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold)),
                           ),
                           title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(member.email, style: const TextStyle(fontSize: 12)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(member.email, style: const TextStyle(fontSize: 12)),
+                              Text('Statut: ${member.status.name}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                          isThreeLine: true,
                           trailing: _build3DValidationButton(
                             onPressed: () => _validateMember(member.id),
                             label: 'Valider',

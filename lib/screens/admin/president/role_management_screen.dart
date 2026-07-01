@@ -109,8 +109,15 @@ class _RoleManagementScreenState extends State<RoleManagementScreen> {
                           style: const TextStyle(color: AppTheme.gold),
                         ),
                       ),
-                      title: Text('${member.prenom} ${member.nom}'),
-                      subtitle: Text('Rôle actuel: ${member.role.name}'),
+                      title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(member.email, style: const TextStyle(fontSize: 12)),
+                          Text('Rôle actuel: ${member.role.name}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        ],
+                      ),
+                      isThreeLine: true,
                       trailing: member.role == UserRole.president 
                         ? const Icon(Icons.shield, color: AppTheme.gold)
                         : _buildRoleSelector(member),

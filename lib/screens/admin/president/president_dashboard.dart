@@ -182,8 +182,15 @@ class _PresidentDashboardState extends State<PresidentDashboard> {
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       child: ListTile(
-                        title: Text('${member.prenom} ${member.nom}'),
-                        subtitle: Text(member.email),
+                        title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(member.email, style: const TextStyle(fontSize: 12)),
+                            Text('Statut: ${member.status.name}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                          ],
+                        ),
+                        isThreeLine: true,
                         trailing: ElevatedButton(
                           onPressed: () => _validateMember(member.id),
                           style: ElevatedButton.styleFrom(

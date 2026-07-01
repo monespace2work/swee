@@ -28,6 +28,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   late TextEditingController _addressController;
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
+  late TextEditingController _emailController;
+  late TextEditingController _usernameController;
   DateTime? _selectedBirthDate;
   String? _selectedGenre;
   
@@ -61,6 +63,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     _addressController = TextEditingController(text: user?.adresse ?? '');
     _firstNameController = TextEditingController(text: user?.prenom ?? '');
     _lastNameController = TextEditingController(text: user?.nom ?? '');
+    _emailController = TextEditingController(text: user?.email ?? '');
+    _usernameController = TextEditingController(text: user?.username ?? '');
     _selectedBirthDate = user?.dateNaissance;
     _selectedGenre = user?.genre;
     _newProfileImage = null;
@@ -73,7 +77,106 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     _addressController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _emailController.dispose();
+    _usernameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _changeEmail() async {
+    final user = Provider.of<UserProvider>(context, listen: false).userProfile;
+    if (user == null) return;
+
+    final newEmailController = TextEditingController();
+    final passwordController = TextEditingController();
+    bool isLoading = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Changer l\'adresse email'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Pour changer votre email, vous devez vous ré-authentifier.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: newEmailController,
+                decoration: const InputDecoration(labelText: 'Nouvel Email'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: passwordController,
+                decoration: const InputDecoration(labelText: 'Mot de passe actuel'),
+                obscureText: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            if (isLoading)
+              const CircularProgressIndicator()
+            else
+              ElevatedButton(
+                onPressed: () async {
+                  final newEmail = newEmailController.text.trim();
+                  final password = passwordController.text;
+
+                  if (newEmail.isEmpty || !newEmail.contains('@')) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Veuillez entrer un email valide.')),
+                    );
+                    return;
+                  }
+
+                  setState(() => isLoading = true);
+                  
+                  try {
+                    final authService = AuthService();
+                    // 1. Ré-authentification
+                    final reauthSuccess = await authService.reauthenticate(password);
+                    if (!reauthSuccess) {
+                      throw 'Échec de la ré-authentification. Vérifiez votre mot de passe.';
+                    }
+
+                    // 2. Mise à jour de l'email (Firebase Auth - envoie le mail de vérification)
+                    await authService.updateEmail(newEmail);
+
+                    // 3. Mise à jour de l'email dans Firestore
+                    await DatabaseService().updateMember(user.id, {
+                      'email': newEmail,
+                    });
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profil mis à jour ! N\'oubliez pas de valider le lien reçu par email (vérifiez vos spams).'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 7),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erreur : $e')),
+                      );
+                    }
+                  } finally {
+                    if (context.mounted) setState(() => isLoading = false);
+                  }
+                },
+                child: const Text('Valider'),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   bool _isPickingImage = false;
@@ -177,6 +280,20 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
     try {
       debugPrint("MyProfileScreen: Tentative de soumission...");
+
+      final username = _usernameController.text.trim().toLowerCase();
+      
+      // Vérification unicité du username si changé
+      if (username != user.username) {
+        final query = await FirebaseFirestore.instance
+            .collection('members')
+            .where('username', isEqualTo: username)
+            .get();
+        if (query.docs.isNotEmpty) {
+          throw "Ce nom d'utilisateur est déjà pris.";
+        }
+      }
+
       String? uploadedImageUrl;
       if (_newProfileImage != null) {
         debugPrint("MyProfileScreen: Upload de la nouvelle photo...");
@@ -188,6 +305,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       // Construction de la map des modifications (uniquement les changements)
       final Map<String, dynamic> updates = {};
       
+      if (username != user.username) updates['username'] = username;
+
       final phone = _phoneController.text.trim();
       if (phone != user.telephone) updates['telephone'] = phone;
       
@@ -225,10 +344,23 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         return;
       }
 
-      debugPrint("MyProfileScreen: Envoi à DatabaseService: $updates");
-      await DatabaseService().updateMember(user.id, {
-        'pendingModifications': updates,
-      });
+      // On sépare le username pour mise à jour immédiate si besoin
+      final Map<String, dynamic> directUpdates = {};
+      if (updates.containsKey('username')) {
+        directUpdates['username'] = updates.remove('username');
+      }
+
+      debugPrint("MyProfileScreen: Envoi à DatabaseService. Updates directes: $directUpdates, En attente: $updates");
+      
+      final Map<String, dynamic> finalFirestoreUpdate = {};
+      if (directUpdates.isNotEmpty) {
+        finalFirestoreUpdate.addAll(directUpdates);
+      }
+      if (updates.isNotEmpty) {
+        finalFirestoreUpdate['pendingModifications'] = updates;
+      }
+
+      await DatabaseService().updateMember(user.id, finalFirestoreUpdate);
       debugPrint("MyProfileScreen: Succès de l'update Firestore");
 
       if (mounted) {
@@ -326,7 +458,12 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                   decoration: const InputDecoration(labelText: 'Nom'),
                 ),
                 const SizedBox(height: 12),
-                _buildInfoTile('Email', user.email, isDark),
+                _buildEditableEmailTile(user.email, isDark),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(labelText: 'Nom d\'utilisateur'),
+                ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _phoneController, 
@@ -378,6 +515,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               ] else ...[
                 _buildInfoTile('Nom', '${user.prenom} ${user.nom}', isDark),
                 _buildInfoTile('Email', user.email, isDark),
+                _buildInfoTile('Nom d\'utilisateur', user.username, isDark),
                 _buildInfoTile('Date de naissance', DateFormat('dd/MM/yyyy').format(user.dateNaissance), isDark),
                 _buildInfoTile('Genre', user.genre == 'M' ? 'Masculin' : 'Féminin', isDark),
                 _buildInfoTile('Téléphone', user.telephone, isDark),
@@ -414,6 +552,36 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildEditableEmailTile(String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Email', style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 12)),
+                Text(value, 
+                  style: TextStyle(
+                    fontSize: 16, 
+                    fontWeight: FontWeight.w500, 
+                    color: isDark ? Colors.white : Colors.black87
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _changeEmail,
+            icon: const Icon(Icons.edit, size: 16),
+            label: const Text('Modifier'),
+          ),
+        ],
+      ),
     );
   }
 

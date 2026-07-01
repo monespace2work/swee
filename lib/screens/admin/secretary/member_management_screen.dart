@@ -167,8 +167,15 @@ class _MemberManagementScreenState extends State<MemberManagementScreen> {
   Widget _buildMobileMemberTile(MemberModel member) {
     return ListTile(
       leading: MemberAvatar(member: member),
-      title: Text('${member.prenom} ${member.nom}'),
-      subtitle: Text('Status: ${member.status.name}'),
+      title: Text('${member.prenom} ${member.nom}', style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(member.email, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+          Text('Statut: ${member.status.name}', style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+      isThreeLine: true,
       trailing: member.pendingModifications != null
           ? const Icon(Icons.pending_actions, color: Colors.orange)
           : const Icon(Icons.chevron_right),

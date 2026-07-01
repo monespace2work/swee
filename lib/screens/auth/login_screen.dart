@@ -32,6 +32,35 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez entrer un email valide pour réinitialiser le mot de passe.')),
+      );
+      return;
+    }
+
+    try {
+      await _authService.sendPasswordResetEmail(email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et vos spams).'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 6),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,7 +73,11 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('assets/images/logo.png', height: 120),
+                Image.asset(
+                  'assets/images/logo.png',
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _emailController,
@@ -71,7 +104,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: true,
                   validator: (value) => value!.length < 6 ? 'Mot de passe trop court' : null,
                 ),
-                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _resetPassword,
+                    child: const Text('Mot de passe oublié ?'),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _isLoading
                     ? const CircularProgressIndicator()
                     : ElevatedButton(

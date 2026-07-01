@@ -15,19 +15,30 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
 
-    // 1. État de chargement (Auth + Firestore)
+    // 1. État de chargement (Auth + Firestore) - Écran de Splash Flutter
     if (userProvider.isLoading) {
-      return const Scaffold(
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA), // Couleur du splash screen
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 24),
-              Text(
+              Image.asset(
+                'assets/images/logo.png',
+                width: 200,
+                height: 200,
+                fit: BoxFit.contain, // Évite le rognage
+              ),
+              const SizedBox(height: 48),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF002366)),
+              ),
+              const SizedBox(height: 24),
+              const Text(
                 "Initialisation sécurisée...",
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
+                  color: Color(0xFF002366),
                 ),
               ),
             ],

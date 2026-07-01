@@ -136,4 +136,33 @@ class AuthService {
   Future<void> sendPasswordResetEmail(String email) async {
     await _auth.sendPasswordResetEmail(email: email);
   }
+
+  // Update email
+  Future<void> updateEmail(String newEmail) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user != null) {
+        await user.verifyBeforeUpdateEmail(newEmail);
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint("AuthService.updateEmail error: ${e.code} - ${e.message}");
+      throw _handleAuthError(e);
+    } catch (e) {
+      debugPrint("AuthService.updateEmail error: $e");
+      throw "Une erreur inconnue est survenue.";
+    }
+  }
+
+  String _handleAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'email-already-in-use':
+        return "Cette adresse email est déjà utilisée par un autre compte.";
+      case 'invalid-email':
+        return "L'adresse email n'est pas valide.";
+      case 'requires-recent-login':
+        return "Cette opération est sensible et demande une connexion récente. Veuillez vous reconnecter.";
+      default:
+        return e.message ?? "Une erreur est survenue lors de la mise à jour.";
+    }
+  }
 }
